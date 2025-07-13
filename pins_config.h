@@ -5,4 +5,8 @@
 #define SDA_PIN 20
 #define SCL_PIN 21
 
+// Motor control pins
+#define MOTOR_EAST_PIN 7
+#define MOTOR_WEST_PIN 6
+
 #endif // PINS_CONFIG_H

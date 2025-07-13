@@ -14,4 +14,8 @@
 #define HISTORY_SECONDS 300
 #define SAMPLE_INTERVAL_SECONDS 2
 
+// Motor control settings
+#define MOTOR_MAX_MOVE_TIME_SECONDS 15
+#define MOTOR_DEAD_TIME_MS 100
+
 #endif // PARAM_CONFIG_H

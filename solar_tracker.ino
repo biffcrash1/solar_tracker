@@ -4,6 +4,7 @@
 #include "Display.h"
 #include "Graph.h"
 #include "Photosensor.h"
+#include "MotorControl.h"
 #include <Arduino.h>
 #include <math.h>
 #include <stdint.h>
@@ -13,6 +14,7 @@ DisplayModule_t displayModule;
 Graph_t graph;
 PhotoSensor_t eastSensor;
 PhotoSensor_t westSensor;
+MotorControl_t motorControl;
 
 unsigned long lastUpdate = 0;
 unsigned long startTime = 0;
@@ -37,7 +39,7 @@ int sampleCount = 0;
 //***********************************************************
 void setup()
 {
-  // Initialize I2C, display, graph, sensors
+  // Initialize I2C, display, graph, sensors, motor control
   I2C_init();
   DisplayModule_init( &displayModule );
   Graph_init( &graph, displayModule.display );
@@ -45,6 +47,8 @@ void setup()
   PhotoSensor_init( &westSensor, A1, 1000 );
   PhotoSensor_begin( &eastSensor );
   PhotoSensor_begin( &westSensor );
+  MotorControl_init( &motorControl );
+  MotorControl_begin( &motorControl );
 
   startTime = millis() / 1000;
   lastUpdate = startTime;
@@ -71,6 +75,9 @@ void loop()
   // Update photosensor sampling every 100ms internally
   PhotoSensor_update( &eastSensor );
   PhotoSensor_update( &westSensor );
+  
+  // Update motor control state
+  MotorControl_update( &motorControl );
 
   unsigned long currentMillis = millis();
   unsigned long currentSecs = currentMillis / 1000;
@@ -102,9 +109,9 @@ void loop()
     sampleCount++;
 
     // Sample and update graph every SAMPLE_INTERVAL_SECONDS
-    if( ( currentSecs - lastSampleTime ) >= SAMPLE_INTERVAL_SECONDS )
+    if(( currentSecs - lastSampleTime ) >= SAMPLE_INTERVAL_SECONDS )
     {
-      int avg = (int)round( (float)sumWatts / sampleCount );
+      int avg = (int)round((float)sumWatts / sampleCount );
       Graph_addPoint( &graph, avg );
       lastSampleTime = currentSecs;
       sumWatts = 0;
