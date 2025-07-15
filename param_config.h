@@ -21,7 +21,11 @@
 // Tracker settings
 #define TRACKER_TOLERANCE_PERCENT 10.0f
 #define TRACKER_MAX_MOVEMENT_TIME_SECONDS 15
-#define TRACKER_ADJUSTMENT_PERIOD_SECONDS 300  // 5 min
+#define TRACKER_ADJUSTMENT_PERIOD_SECONDS 30  // 30 sec
 #define TRACKER_SAMPLING_RATE_MS 100
+
+// Terminal settings
+#define TERMINAL_PRINT_PERIOD_MS 1000  // 1 second
+#define TERMINAL_ENABLE_PERIODIC_LOGS true  // Disable periodic logs by default
 
 #endif // PARAM_CONFIG_H

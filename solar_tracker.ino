@@ -6,6 +6,7 @@
 #include "Photosensor.h"
 #include "MotorControl.h"
 #include "Tracker.h"
+#include "Terminal.h"
 #include <Arduino.h>
 #include <math.h>
 #include <stdint.h>
@@ -17,6 +18,7 @@ PhotoSensor_t eastSensor;
 PhotoSensor_t westSensor;
 MotorControl_t motorControl;
 Tracker_t tracker;
+Terminal_t terminal;
 
 unsigned long lastUpdate = 0;
 unsigned long startTime = 0;
@@ -41,7 +43,7 @@ int sampleCount = 0;
 //***********************************************************
 void setup()
 {
-  // Initialize I2C, display, graph, sensors, motor control, tracker
+  // Initialize I2C, display, graph, sensors, motor control, tracker, terminal
   I2C_init();
   DisplayModule_init( &displayModule );
   Graph_init( &graph, displayModule.display );
@@ -53,6 +55,8 @@ void setup()
   MotorControl_begin( &motorControl );
   Tracker_init( &tracker, &eastSensor, &westSensor, &motorControl );
   Tracker_begin( &tracker );
+  Terminal_init( &terminal );
+  Terminal_begin( &terminal );
 
   startTime = millis() / 1000;
   lastUpdate = startTime;
@@ -85,6 +89,9 @@ void loop()
   
   // Update tracker state machine
   Tracker_update( &tracker );
+  
+  // Update terminal logging
+  Terminal_update( &terminal, &tracker, &motorControl, &eastSensor, &westSensor );
 
   unsigned long currentMillis = millis();
   unsigned long currentSecs = currentMillis / 1000;

@@ -11,6 +11,7 @@ This project has been refactored from C++ to plain C for Arduino. The original C
 - `I2C.h` - I2C function declarations
 - `MotorControl.h` - MotorControl struct and function declarations
 - `Tracker.h` - Tracker struct and function declarations
+- `Terminal.h` - Terminal struct and function declarations
 - `param_config.h` - Configuration constants
 - `pins_config.h` - Pin definitions
 
@@ -21,6 +22,7 @@ This project has been refactored from C++ to plain C for Arduino. The original C
 - `I2C.cpp` - I2C initialization implementation
 - `MotorControl.cpp` - Motor control functionality implementation
 - `Tracker.cpp` - Solar tracking state machine implementation
+- `Terminal.cpp` - Serial terminal logging implementation
 
 ### Main File
 - `solar_tracker.ino` - Main Arduino sketch with setup() and loop() functions
@@ -33,6 +35,7 @@ This project has been refactored from C++ to plain C for Arduino. The original C
 - `Graph` class → `Graph_t` struct
 - `MotorControl` class → `MotorControl_t` struct
 - `Tracker` class → `Tracker_t` struct
+- `Terminal` class → `Terminal_t` struct
 - `I2C` class → Static functions
 
 ### 2. Member Functions to C Functions
@@ -53,6 +56,9 @@ This project has been refactored from C++ to plain C for Arduino. The original C
 - `Tracker::init()` → `Tracker_init(Tracker_t* tracker, ...)`
 - `Tracker::begin()` → `Tracker_begin(Tracker_t* tracker)`
 - `Tracker::update()` → `Tracker_update(Tracker_t* tracker)`
+- `Terminal::init()` → `Terminal_init(Terminal_t* terminal)`
+- `Terminal::begin()` → `Terminal_begin(Terminal_t* terminal)`
+- `Terminal::update()` → `Terminal_update(Terminal_t* terminal, ...)`
 - `I2C::init()` → `I2C_init(void)`
 
 ### 3. Constructor to Initialization Functions
@@ -61,6 +67,7 @@ This project has been refactored from C++ to plain C for Arduino. The original C
 - `Graph()` → `Graph_init(graph, display)`
 - `MotorControl()` → `MotorControl_init(motor)`
 - `Tracker(eastSensor, westSensor, motorControl)` → `Tracker_init(tracker, eastSensor, westSensor, motorControl)`
+- `Terminal()` → `Terminal_init(terminal)`
 
 ## Usage
 
@@ -73,6 +80,7 @@ DisplayModule_t displayModule;
 Graph_t graph;
 MotorControl_t motorControl;
 Tracker_t tracker;
+Terminal_t terminal;
 
 // Initialize components
 I2C_init();
@@ -86,6 +94,8 @@ MotorControl_init(&motorControl);
 MotorControl_begin(&motorControl);
 Tracker_init(&tracker, &eastSensor, &westSensor, &motorControl);
 Tracker_begin(&tracker);
+Terminal_init(&terminal);
+Terminal_begin(&terminal);
 ```
 
 ### Main Loop Operations
@@ -97,6 +107,9 @@ PhotoSensor_update(&westSensor);
 // Update motor control and tracker
 MotorControl_update(&motorControl);
 Tracker_update(&tracker);
+
+// Update terminal logging
+Terminal_update(&terminal, &tracker, &motorControl, &eastSensor, &westSensor);
 
 // Get sensor values
 int32_t east = PhotoSensor_getValue(&eastSensor);
@@ -154,6 +167,51 @@ bool isAdjusting = Tracker_isAdjusting(&tracker);
 unsigned long timeLeft = Tracker_getTimeUntilNextAdjustment(&tracker);
 ```
 
+## Terminal Module
+
+The Terminal module provides comprehensive serial logging and monitoring of the solar tracker system:
+
+### Features
+- **State Change Logging**: Logs all tracker and motor state changes with timestamps
+- **Motor Log**: Only prints the state being entered (not the state being exited)
+- **Sensor Data Monitoring**: Prints sensor values, differences, tolerance, and balance status
+- **Aligned Output**: All sensor log columns are 6 digits, right-justified for easy reading
+- **Balance Status**: Prints `BALANCED_WITHIN_TOLERANCE` when sensors are within tolerance
+- **Configurable Print Period**: Default 1-second intervals for regular sensor data (configurable, disabled by default)
+- **Event-Driven Logging**: Automatically logs when movement starts or balance is reached
+- **Timestamped Output**: All messages include formatted timestamps (MM:SS)
+- **Unused Parameter Warnings Suppressed**: All unused parameters in logging functions are explicitly cast to void with comments for clarity and maintainability
+
+### Log Output Examples
+```
+Solar Tracker Terminal Started
+==============================
+[0:05] TRACKER: IDLE      -> ADJUSTING (Adjustment period started)
+[0:05] MOTOR:  MOVING_EAST 
+[0:05] SENSORS: E=   450 W=   520 Diff=    70 Tol=    45 EAST_BRIGHTER
+[0:06] SENSORS: E=   430 W=   510 Diff=    80 Tol=    43 EAST_BRIGHTER
+[0:07] SENSORS: E=   420 W=   500 Diff=    80 Tol=    42 EAST_BRIGHTER
+[0:08] SENSORS: E=   410 W=   490 Diff=    80 Tol=    41 EAST_BRIGHTER
+[0:09] SENSORS: E=   400 W=   480 Diff=    80 Tol=    40 BALANCED_WITHIN_TOLERANCE
+[0:09] MOTOR:  STOPPED     
+[0:09] TRACKER: ADJUSTING -> IDLE      (Sensors balanced or timeout reached)
+```
+
+### Configuration Functions
+```c
+// Set print period in milliseconds
+Terminal_setPrintPeriod(&terminal, 2000); // 2 seconds
+// Enable or disable periodic logs (off by default)
+Terminal_setPeriodicLogs(&terminal, true); // Enable
+Terminal_setPeriodicLogs(&terminal, false); // Disable
+```
+
+### When Data is Printed
+- **Regular Intervals**: Every 1 second (configurable, disabled by default)
+- **Movement Start**: When tracker transitions to ADJUSTING state
+- **Balance Changes**: When sensors become balanced or unbalanced
+- **State Changes**: Every tracker and motor state change
+
 ## Hardware Requirements
 
 - Arduino Mega 2560 (or compatible)
@@ -161,6 +219,7 @@ unsigned long timeLeft = Tracker_getTimeUntilNextAdjustment(&tracker);
 - 2x Photoresistors with 1kΩ series resistors
 - Motor control circuitry (H-bridge or motor driver)
 - I2C connections (SDA: pin 20, SCL: pin 21)
+- USB connection for serial monitoring
 
 ## Dependencies
 
