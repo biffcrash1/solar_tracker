@@ -4,42 +4,36 @@
 #include <Arduino.h>
 #include "param_config.h"
 
-// Motor states
-typedef enum
-{
-  MOTOR_STATE_STOPPED,
-  MOTOR_STATE_MOVING_EAST,
-  MOTOR_STATE_MOVING_WEST,
-  MOTOR_STATE_DEAD_TIME
-} MotorState_t;
+class MotorControl {
+public:
+    enum State {
+        STOPPED,
+        MOVING_EAST,
+        MOVING_WEST,
+        DEAD_TIME
+    };
+    enum PendingCommand {
+        PENDING_NONE,
+        PENDING_EAST,
+        PENDING_WEST,
+        PENDING_STOP
+    };
 
-// Pending command types
-typedef enum
-{
-  PENDING_NONE,
-  PENDING_EAST,
-  PENDING_WEST,
-  PENDING_STOP
-} PendingCommand_t;
+    MotorControl();
+    void begin();
+    void update();
+    void moveEast();
+    void moveWest();
+    void stop();
+    State getState() const;
+    void ensureSafety();
 
-// Motor control structure
-typedef struct
-{
-  MotorState_t state;
-  unsigned long moveStartTime;
-  unsigned long deadTimeStart;
-  PendingCommand_t pendingCommand;
-  bool isInitialized;
-} MotorControl_t;
-
-// Function prototypes
-void MotorControl_init( MotorControl_t* motor );
-void MotorControl_begin( MotorControl_t* motor );
-void MotorControl_update( MotorControl_t* motor );
-void MotorControl_moveEast( MotorControl_t* motor );
-void MotorControl_moveWest( MotorControl_t* motor );
-void MotorControl_stop( MotorControl_t* motor );
-MotorState_t MotorControl_getState( MotorControl_t* motor );
-void MotorControl_ensureSafety( MotorControl_t* motor );
+private:
+    State state;
+    unsigned long moveStartTime;
+    unsigned long deadTimeStart;
+    PendingCommand pendingCommand;
+    bool isInitialized;
+};
 
 #endif // MOTOR_CONTROL_H 

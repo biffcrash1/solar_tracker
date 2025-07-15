@@ -7,37 +7,31 @@
 #include "MotorControl.h"
 #include "Photosensor.h"
 
-// Terminal structure
-typedef struct
-{
-  unsigned long printPeriodMs;
-  unsigned long lastPrintTime;
-  bool isInitialized;
-  bool enablePeriodicLogs;
-  
-  // State tracking for change detection
-  TrackerState_t lastTrackerState;
-  MotorState_t lastMotorState;
-  bool lastBalanced;
-} Terminal_t;
+class Terminal {
+public:
+    Terminal();
+    void begin();
+    void update(Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor);
 
-// Function prototypes
-void Terminal_init( Terminal_t* terminal );
-void Terminal_begin( Terminal_t* terminal );
-void Terminal_update( Terminal_t* terminal, Tracker_t* tracker, MotorControl_t* motorControl, 
-                     PhotoSensor_t* eastSensor, PhotoSensor_t* westSensor );
+    // Configuration
+    void setPrintPeriod(unsigned long printPeriodMs);
+    void setPeriodicLogs(bool enable);
 
-// Configuration functions
-void Terminal_setPrintPeriod( Terminal_t* terminal, unsigned long printPeriodMs );
-void Terminal_setPeriodicLogs( Terminal_t* terminal, bool enable );
+    // Logging
+    void logTrackerStateChange(Tracker::State oldState, Tracker::State newState, const char* reason);
+    void logMotorStateChange(MotorControl::State oldState, MotorControl::State newState);
+    void logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, Tracker* tracker, bool isBalanced);
+    void logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t threshold);
 
-// Logging functions
-void Terminal_logTrackerStateChange( Terminal_t* terminal, TrackerState_t oldState, 
-                                   TrackerState_t newState, const char* reason );
-void Terminal_logMotorStateChange( Terminal_t* terminal, MotorState_t oldState, 
-                                 MotorState_t newState );
-void Terminal_logSensorData( Terminal_t* terminal, PhotoSensor_t* eastSensor, 
-                           PhotoSensor_t* westSensor, Tracker_t* tracker, bool isBalanced );
-void Terminal_logAdjustmentSkippedLowBrightness(Terminal_t* terminal, int32_t avgBrightness, int32_t threshold);
+private:
+    unsigned long printPeriodMs;
+    unsigned long lastPrintTime;
+    bool enablePeriodicLogs;
+
+    // State tracking for change detection
+    Tracker::State lastTrackerState;
+    MotorControl::State lastMotorState;
+    bool lastBalanced;
+};
 
 #endif // TERMINAL_H 

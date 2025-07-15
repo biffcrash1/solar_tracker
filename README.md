@@ -1,119 +1,121 @@
-# Solar Tracker - Arduino C Implementation
+# Solar Tracker - Arduino C++ Implementation
 
-This project has been refactored from C++ to plain C for Arduino. The original C++ classes have been converted to C structs with associated functions.
+This project uses modern C++ classes for Arduino development, providing clean object-oriented design with proper encapsulation and member functions.
 
 ## Project Structure
 
 ### Header Files (.h)
-- `Photosensor.h` - PhotoSensor struct and function declarations
-- `Display.h` - DisplayModule struct and function declarations  
-- `Graph.h` - Graph struct and function declarations
+- `Photosensor.h` - PhotoSensor class declaration
+- `Display.h` - DisplayModule struct and function declarations (legacy C-style)
+- `Graph.h` - Graph struct and function declarations (legacy C-style)
 - `I2C.h` - I2C function declarations
-- `MotorControl.h` - MotorControl struct and function declarations
-- `Tracker.h` - Tracker struct and function declarations
-- `Terminal.h` - Terminal struct and function declarations
+- `MotorControl.h` - MotorControl class declaration
+- `Tracker.h` - Tracker class declaration
+- `Terminal.h` - Terminal class declaration
 - `param_config.h` - Configuration constants
 - `pins_config.h` - Pin definitions
 
 ### Implementation Files (.cpp)
-- `Photosensor.cpp` - PhotoSensor functionality implementation
-- `Display.cpp` - Display functionality implementation
-- `Graph.cpp` - Graph drawing functionality implementation
+- `Photosensor.cpp` - PhotoSensor class implementation
+- `Display.cpp` - Display functionality implementation (legacy C-style)
+- `Graph.cpp` - Graph drawing functionality implementation (legacy C-style)
 - `I2C.cpp` - I2C initialization implementation
-- `MotorControl.cpp` - Motor control functionality implementation
-- `Tracker.cpp` - Solar tracking state machine implementation
-- `Terminal.cpp` - Serial terminal logging implementation
+- `MotorControl.cpp` - MotorControl class implementation
+- `Tracker.cpp` - Tracker class implementation
+- `Terminal.cpp` - Terminal class implementation
 
 ### Main File
 - `solar_tracker.ino` - Main Arduino sketch with setup() and loop() functions
 
-## Key Changes from C++ to C
+## C++ Class Design
 
-### 1. Class to Struct Conversion
-- `PhotoSensor` class → `PhotoSensor_t` struct
-- `DisplayModule` class → `DisplayModule_t` struct  
-- `Graph` class → `Graph_t` struct
-- `MotorControl` class → `MotorControl_t` struct
-- `Tracker` class → `Tracker_t` struct
-- `Terminal` class → `Terminal_t` struct
-- `I2C` class → Static functions
+### 1. Modern C++ Classes
+- `PhotoSensor` - Encapsulated photosensor functionality with private members and public interface
+- `MotorControl` - Motor control state machine with proper encapsulation
+- `Tracker` - Solar tracking state machine with configuration methods
+- `Terminal` - Serial logging with event-driven output
+- `DisplayModule_t` - Legacy C-style struct (Display and Graph modules remain C-style for compatibility)
+- `I2C` - Static functions for I2C initialization
 
-### 2. Member Functions to C Functions
-- `PhotoSensor::begin()` → `PhotoSensor_begin(PhotoSensor_t* sensor)`
-- `PhotoSensor::update()` → `PhotoSensor_update(PhotoSensor_t* sensor)`
-- `PhotoSensor::getValue()` → `PhotoSensor_getValue(const PhotoSensor_t* sensor)`
-- `DisplayModule::init()` → `DisplayModule_init(DisplayModule_t* module)`
-- `DisplayModule::drawData()` → `DisplayModule_drawData(DisplayModule_t* module, ...)`
-- `Graph::init()` → `Graph_init(Graph_t* graph, Adafruit_SSD1306* disp)`
-- `Graph::addPoint()` → `Graph_addPoint(Graph_t* graph, int value)`
-- `Graph::drawGraph()` → `Graph_drawGraph(Graph_t* graph)`
-- `MotorControl::init()` → `MotorControl_init(MotorControl_t* motor)`
-- `MotorControl::begin()` → `MotorControl_begin(MotorControl_t* motor)`
-- `MotorControl::update()` → `MotorControl_update(MotorControl_t* motor)`
-- `MotorControl::moveEast()` → `MotorControl_moveEast(MotorControl_t* motor)`
-- `MotorControl::moveWest()` → `MotorControl_moveWest(MotorControl_t* motor)`
-- `MotorControl::stop()` → `MotorControl_stop(MotorControl_t* motor)`
-- `Tracker::init()` → `Tracker_init(Tracker_t* tracker, ...)`
-- `Tracker::begin()` → `Tracker_begin(Tracker_t* tracker)`
-- `Tracker::update()` → `Tracker_update(Tracker_t* tracker)`
-- `Terminal::init()` → `Terminal_init(Terminal_t* terminal)`
-- `Terminal::begin()` → `Terminal_begin(Terminal_t* terminal)`
-- `Terminal::update()` → `Terminal_update(Terminal_t* terminal, ...)`
-- `I2C::init()` → `I2C_init(void)`
+### 2. C++ Class Methods
+- `PhotoSensor::begin()` - Initialize the sensor
+- `PhotoSensor::update()` - Update sensor readings every 100ms
+- `PhotoSensor::getValue()` - Get current resistance value
+- `PhotoSensor::getPin()` - Get the analog pin number
+- `PhotoSensor::getSeriesResistor()` - Get the series resistor value
+- `MotorControl::begin()` - Initialize motor control
+- `MotorControl::update()` - Update motor state machine
+- `MotorControl::moveEast()` - Move motor east
+- `MotorControl::moveWest()` - Move motor west
+- `MotorControl::stop()` - Stop motor movement
+- `MotorControl::getState()` - Get current motor state
+- `Tracker::begin()` - Initialize tracker
+- `Tracker::update()` - Update tracker state machine
+- `Tracker::setTolerance()` - Set adjustment tolerance
+- `Tracker::setMaxMovementTime()` - Set maximum movement time
+- `Tracker::setAdjustmentPeriod()` - Set adjustment period
+- `Tracker::setSamplingRate()` - Set sampling rate
+- `Tracker::setBrightnessThreshold()` - Set brightness threshold
+- `Tracker::setBrightnessFilterTimeConstant()` - Set EMA filter time constant
+- `Tracker::getState()` - Get current tracker state
+- `Tracker::isAdjusting()` - Check if tracker is adjusting
+- `Tracker::getTimeUntilNextAdjustment()` - Get time until next adjustment
+- `Tracker::getFilteredBrightness()` - Get filtered brightness value
+- `Terminal::begin()` - Initialize terminal
+- `Terminal::update()` - Update terminal logging
+- `Terminal::setPrintPeriod()` - Set print period
+- `Terminal::setPeriodicLogs()` - Enable/disable periodic logs
+- `Terminal::logTrackerStateChange()` - Log tracker state changes
+- `Terminal::logMotorStateChange()` - Log motor state changes
+- `Terminal::logSensorData()` - Log sensor data
+- `Terminal::logAdjustmentSkippedLowBrightness()` - Log skipped adjustments
 
-### 3. Constructor to Initialization Functions
-- `PhotoSensor(pin, resistor)` → `PhotoSensor_init(sensor, pin, resistor)`
-- `DisplayModule()` → `DisplayModule_init(module)`
-- `Graph()` → `Graph_init(graph, display)`
-- `MotorControl()` → `MotorControl_init(motor)`
-- `Tracker(eastSensor, westSensor, motorControl)` → `Tracker_init(tracker, eastSensor, westSensor, motorControl)`
-- `Terminal()` → `Terminal_init(terminal)`
+### 3. C++ Constructors
+- `PhotoSensor(pin, resistor)` - Constructor with pin and series resistor
+- `MotorControl()` - Default constructor
+- `Tracker(eastSensor, westSensor, motorControl)` - Constructor with sensor and motor references
+- `Terminal()` - Default constructor
 
 ## Usage
 
 ### Initialization
-```c
-// Declare structs
-PhotoSensor_t eastSensor;
-PhotoSensor_t westSensor;
+```cpp
+// Declare objects
+PhotoSensor eastSensor(A0, 1000);
+PhotoSensor westSensor(A1, 1000);
 DisplayModule_t displayModule;
 Graph_t graph;
-MotorControl_t motorControl;
-Tracker_t tracker;
-Terminal_t terminal;
+MotorControl motorControl;
+Tracker tracker(&eastSensor, &westSensor, &motorControl);
+Terminal terminal;
 
 // Initialize components
 I2C_init();
 DisplayModule_init(&displayModule);
 Graph_init(&graph, displayModule.display);
-PhotoSensor_init(&eastSensor, A0, 1000);
-PhotoSensor_init(&westSensor, A1, 1000);
-PhotoSensor_begin(&eastSensor);
-PhotoSensor_begin(&westSensor);
-MotorControl_init(&motorControl);
-MotorControl_begin(&motorControl);
-Tracker_init(&tracker, &eastSensor, &westSensor, &motorControl);
-Tracker_begin(&tracker);
-Terminal_init(&terminal);
-Terminal_begin(&terminal);
+eastSensor.begin();
+westSensor.begin();
+motorControl.begin();
+tracker.begin();
+terminal.begin();
 ```
 
 ### Main Loop Operations
-```c
+```cpp
 // Update sensors
-PhotoSensor_update(&eastSensor);
-PhotoSensor_update(&westSensor);
+eastSensor.update();
+westSensor.update();
 
 // Update motor control and tracker
-MotorControl_update(&motorControl);
-Tracker_update(&tracker);
+motorControl.update();
+tracker.update();
 
 // Update terminal logging
-Terminal_update(&terminal, &tracker, &motorControl, &eastSensor, &westSensor);
+terminal.update(&tracker, &motorControl, &eastSensor, &westSensor);
 
 // Get sensor values
-int32_t east = PhotoSensor_getValue(&eastSensor);
-int32_t west = PhotoSensor_getValue(&westSensor);
+int32_t east = eastSensor.getValue();
+int32_t west = westSensor.getValue();
 
 // Add data to graph
 Graph_addPoint(&graph, watts);
@@ -141,30 +143,30 @@ The Tracker module implements an intelligent solar tracking system using a state
 - `TRACKER_STATE_ADJUSTING`: Actively adjusting position (sampling sensors and moving motors)
 
 ### Configuration Functions
-```c
+```cpp
 // Set tolerance percentage (0.0 to 100.0)
-Tracker_setTolerance(&tracker, 15.0f);
+tracker.setTolerance(15.0f);
 
 // Set maximum movement time in seconds
-Tracker_setMaxMovementTime(&tracker, 20);
+tracker.setMaxMovementTime(20);
 
 // Set adjustment period in seconds
-Tracker_setAdjustmentPeriod(&tracker, 600); // 10 minutes
+tracker.setAdjustmentPeriod(600); // 10 minutes
 
 // Set sampling rate in milliseconds
-Tracker_setSamplingRate(&tracker, 50); // 50ms
+tracker.setSamplingRate(50); // 50ms
 ```
 
 ### Status Functions
-```c
+```cpp
 // Get current tracker state
-TrackerState_t state = Tracker_getState(&tracker);
+Tracker::State state = tracker.getState();
 
 // Check if tracker is currently adjusting
-bool isAdjusting = Tracker_isAdjusting(&tracker);
+bool isAdjusting = tracker.isAdjusting();
 
 // Get time until next adjustment
-unsigned long timeLeft = Tracker_getTimeUntilNextAdjustment(&tracker);
+unsigned long timeLeft = tracker.getTimeUntilNextAdjustment();
 ```
 
 ## Terminal Module

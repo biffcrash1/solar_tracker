@@ -1,34 +1,30 @@
 #include "Photosensor.h"
 
 //***********************************************************
-//     Function Name: PhotoSensor_init
+//     Constructor: PhotoSensor
 //
 //     Inputs:
-//     - sensor : Pointer to PhotoSensor_t struct to initialize
 //     - pin : Analog pin number for the photosensor
 //     - seriesResistor : Value of the series resistor in ohms
 //
-//     Returns:
-//     - None
-//
 //     Description:
-//     - Initializes a PhotoSensor_t struct with the specified pin
+//     - Initializes a PhotoSensor object with the specified pin
 //       and series resistor value.
 //
 //***********************************************************
-void PhotoSensor_init( PhotoSensor_t* sensor, uint8_t pin, uint32_t seriesResistor )
+PhotoSensor::PhotoSensor(uint8_t pin, uint32_t seriesResistor)
 {
-  sensor->pin = pin;
-  sensor->seriesResistor = seriesResistor;
-  sensor->value = 0;
-  sensor->lastUpdate = 0;
+  this->pin = pin;
+  this->seriesResistor = seriesResistor;
+  this->value = 0;
+  this->lastUpdate = 0;
 }
 
 //***********************************************************
-//     Function Name: PhotoSensor_begin
+//     Function Name: begin
 //
 //     Inputs:
-//     - sensor : Pointer to PhotoSensor_t struct
+//     - None
 //
 //     Returns:
 //     - None
@@ -38,17 +34,17 @@ void PhotoSensor_init( PhotoSensor_t* sensor, uint8_t pin, uint32_t seriesResist
 //       update time to the current millis() value.
 //
 //***********************************************************
-void PhotoSensor_begin( PhotoSensor_t* sensor )
+void PhotoSensor::begin()
 {
   // Nothing special to initialize
-  sensor->lastUpdate = millis();
+  lastUpdate = millis();
 }
 
 //***********************************************************
-//     Function Name: PhotoSensor_update
+//     Function Name: update
 //
 //     Inputs:
-//     - sensor : Pointer to PhotoSensor_t struct
+//     - None
 //
 //     Returns:
 //     - None
@@ -59,32 +55,32 @@ void PhotoSensor_begin( PhotoSensor_t* sensor )
 //       voltage divider formula.
 //
 //***********************************************************
-void PhotoSensor_update( PhotoSensor_t* sensor )
+void PhotoSensor::update()
 {
   unsigned long now = millis();
-  if( now - sensor->lastUpdate >= 100 )
+  if( now - lastUpdate >= 100 )
   {
-    sensor->lastUpdate += 100;
-    int reading = analogRead( sensor->pin );
+    lastUpdate += 100;
+    int reading = analogRead( pin );
     if( reading >= 1023 )
     {
-      sensor->value = INT32_MAX;
+      value = INT32_MAX;
     }
     else
     {
-      uint32_t num = (uint32_t)sensor->seriesResistor * reading;
+      uint32_t num = (uint32_t)seriesResistor * reading;
       uint32_t den = 1023 - reading;
       uint32_t resistance = den ? ( num / den ) : UINT32_MAX;
-      sensor->value = (int32_t)resistance;
+      value = (int32_t)resistance;
     }
   }
 }
 
 //***********************************************************
-//     Function Name: PhotoSensor_getValue
+//     Function Name: getValue
 //
 //     Inputs:
-//     - sensor : Pointer to PhotoSensor_t struct
+//     - None
 //
 //     Returns:
 //     - int32_t : Current resistance value of the photosensor
@@ -94,7 +90,7 @@ void PhotoSensor_update( PhotoSensor_t* sensor )
 //       in ohms. Higher values indicate less light.
 //
 //***********************************************************
-int32_t PhotoSensor_getValue( const PhotoSensor_t* sensor )
+int32_t PhotoSensor::getValue() const
 {
-  return sensor->value;
+  return value;
 }

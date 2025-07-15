@@ -6,56 +6,51 @@
 #include "Photosensor.h"
 #include "MotorControl.h"
 
-// Tracker states
-typedef enum
-{
-  TRACKER_STATE_IDLE,
-  TRACKER_STATE_ADJUSTING
-} TrackerState_t;
+class Tracker {
+public:
+    enum State {
+        IDLE,
+        ADJUSTING
+    };
 
-// Tracker structure
-typedef struct
-{
-  TrackerState_t state;
-  PhotoSensor_t* eastSensor;
-  PhotoSensor_t* westSensor;
-  MotorControl_t* motorControl;
-  
-  // Configuration parameters
-  float tolerancePercent;
-  unsigned long maxMovementTimeMs;
-  unsigned long adjustmentPeriodMs;
-  unsigned long samplingRateMs;
-  int32_t brightnessThresholdOhms;
-  float brightnessFilterTimeConstantS;
-  float filteredBrightness;
-  
-  // Timing variables
-  unsigned long lastAdjustmentTime;
-  unsigned long lastSamplingTime;
-  unsigned long movementStartTime;
-  unsigned long lastBrightnessSampleTime;
-  
-  // State tracking
-  bool isInitialized;
-} Tracker_t;
+    Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl* motorControl);
+    void begin();
+    void update();
 
-// Function prototypes
-void Tracker_init( Tracker_t* tracker, PhotoSensor_t* eastSensor, PhotoSensor_t* westSensor, MotorControl_t* motorControl );
-void Tracker_begin( Tracker_t* tracker );
-void Tracker_update( Tracker_t* tracker );
+    // Configuration
+    void setTolerance(float tolerancePercent);
+    void setMaxMovementTime(unsigned long maxMovementTimeSeconds);
+    void setAdjustmentPeriod(unsigned long adjustmentPeriodSeconds);
+    void setSamplingRate(unsigned long samplingRateMs);
+    void setBrightnessThreshold(int32_t thresholdOhms);
+    void setBrightnessFilterTimeConstant(float tauS);
 
-// Configuration functions
-void Tracker_setTolerance( Tracker_t* tracker, float tolerancePercent );
-void Tracker_setMaxMovementTime( Tracker_t* tracker, unsigned long maxMovementTimeSeconds );
-void Tracker_setAdjustmentPeriod( Tracker_t* tracker, unsigned long adjustmentPeriodSeconds );
-void Tracker_setSamplingRate( Tracker_t* tracker, unsigned long samplingRateMs );
-void Tracker_setBrightnessThreshold( Tracker_t* tracker, int32_t thresholdOhms );
-void Tracker_setBrightnessFilterTimeConstant( Tracker_t* tracker, float tauS );
+    // Status
+    State getState() const;
+    bool isAdjusting() const;
+    unsigned long getTimeUntilNextAdjustment() const;
+    float getFilteredBrightness() const { return filteredBrightness; }
 
-// Status functions
-TrackerState_t Tracker_getState( Tracker_t* tracker );
-bool Tracker_isAdjusting( Tracker_t* tracker );
-unsigned long Tracker_getTimeUntilNextAdjustment( Tracker_t* tracker );
+private:
+    State state;
+    PhotoSensor* eastSensor;
+    PhotoSensor* westSensor;
+    MotorControl* motorControl;
+
+    // Configuration
+    float tolerancePercent;
+    unsigned long maxMovementTimeMs;
+    unsigned long adjustmentPeriodMs;
+    unsigned long samplingRateMs;
+    int32_t brightnessThresholdOhms;
+    float brightnessFilterTimeConstantS;
+    float filteredBrightness;
+
+    // Timing
+    unsigned long lastAdjustmentTime;
+    unsigned long lastSamplingTime;
+    unsigned long movementStartTime;
+    unsigned long lastBrightnessSampleTime;
+};
 
 #endif // TRACKER_H 

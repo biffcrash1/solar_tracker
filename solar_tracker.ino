@@ -14,11 +14,11 @@
 // Global variables
 DisplayModule_t displayModule;
 Graph_t graph;
-PhotoSensor_t eastSensor;
-PhotoSensor_t westSensor;
-MotorControl_t motorControl;
-Tracker_t tracker;
-Terminal_t terminal;
+PhotoSensor eastSensor(A0, 1000);
+PhotoSensor westSensor(A1, 1000);
+MotorControl motorControl;
+Tracker tracker(&eastSensor, &westSensor, &motorControl);
+Terminal terminal;
 
 unsigned long lastUpdate = 0;
 unsigned long startTime = 0;
@@ -47,16 +47,11 @@ void setup()
   I2C_init();
   DisplayModule_init( &displayModule );
   Graph_init( &graph, displayModule.display );
-  PhotoSensor_init( &eastSensor, A0, 1000 );
-  PhotoSensor_init( &westSensor, A1, 1000 );
-  PhotoSensor_begin( &eastSensor );
-  PhotoSensor_begin( &westSensor );
-  MotorControl_init( &motorControl );
-  MotorControl_begin( &motorControl );
-  Tracker_init( &tracker, &eastSensor, &westSensor, &motorControl );
-  Tracker_begin( &tracker );
-  Terminal_init( &terminal );
-  Terminal_begin( &terminal );
+  eastSensor.begin();
+  westSensor.begin();
+  motorControl.begin();
+  tracker.begin();
+  terminal.begin();
 
   startTime = millis() / 1000;
   lastUpdate = startTime;
@@ -81,17 +76,17 @@ void setup()
 void loop()
 {
   // Update photosensor sampling every 100ms internally
-  PhotoSensor_update( &eastSensor );
-  PhotoSensor_update( &westSensor );
+  eastSensor.update();
+  westSensor.update();
   
   // Update motor control state
-  MotorControl_update( &motorControl );
+  motorControl.update();
   
   // Update tracker state machine
-  Tracker_update( &tracker );
+  tracker.update();
   
   // Update terminal logging
-  Terminal_update( &terminal, &tracker, &motorControl, &eastSensor, &westSensor );
+  terminal.update( &tracker, &motorControl, &eastSensor, &westSensor );
 
   unsigned long currentMillis = millis();
   unsigned long currentSecs = currentMillis / 1000;
@@ -105,8 +100,8 @@ void loop()
     float amps = 10 + 3 * sin( 2 * PI * elapsed / 53.0 );
 
     // Read photoresistor values
-    int32_t east = PhotoSensor_getValue( &eastSensor );
-    int32_t west = PhotoSensor_getValue( &westSensor );
+    int32_t east = eastSensor.getValue();
+    int32_t west = westSensor.getValue();
 
     // Countdown timer
     nextSeconds--;
