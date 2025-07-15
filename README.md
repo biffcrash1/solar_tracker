@@ -174,7 +174,7 @@ The Terminal module provides comprehensive serial logging and monitoring of the 
 ### Features
 - **State Change Logging**: Logs all tracker and motor state changes with timestamps
 - **Motor Log**: Only prints the state being entered (not the state being exited)
-- **Sensor Data Monitoring**: Prints sensor values, differences, tolerance, and balance status
+- **Sensor Data Monitoring**: Prints sensor values, differences, tolerance, EMA (filtered brightness, in ohms), and balance status
 - **Aligned Output**: All sensor log columns are 6 digits, right-justified for easy reading
 - **Balance Status**: Prints `BALANCED_WITHIN_TOLERANCE` when sensors are within tolerance
 - **Configurable Print Period**: Default 1-second intervals for regular sensor data (configurable, disabled by default)
@@ -188,13 +188,14 @@ Solar Tracker Terminal Started
 ==============================
 [0:05] TRACKER: IDLE      -> ADJUSTING (Adjustment period started)
 [0:05] MOTOR:  MOVING_EAST 
-[0:05] SENSORS: E=   450 W=   520 Diff=    70 Tol=    45 EAST_BRIGHTER
-[0:06] SENSORS: E=   430 W=   510 Diff=    80 Tol=    43 EAST_BRIGHTER
-[0:07] SENSORS: E=   420 W=   500 Diff=    80 Tol=    42 EAST_BRIGHTER
-[0:08] SENSORS: E=   410 W=   490 Diff=    80 Tol=    41 EAST_BRIGHTER
-[0:09] SENSORS: E=   400 W=   480 Diff=    80 Tol=    40 BALANCED_WITHIN_TOLERANCE
+[0:05] SENSORS: E=   450 W=   520 Diff=    70 Tol=    45 EMA=   485 EAST_BRIGHTER
+[0:06] SENSORS: E=   430 W=   510 Diff=    80 Tol=    43 EMA=   487 EAST_BRIGHTER
+[0:07] SENSORS: E=   420 W=   500 Diff=    80 Tol=    42 EMA=   488 EAST_BRIGHTER
+[0:08] SENSORS: E=   410 W=   490 Diff=    80 Tol=    41 EMA=   489 EAST_BRIGHTER
+[0:09] SENSORS: E=   400 W=   480 Diff=    80 Tol=    40 EMA=   490 BALANCED_WITHIN_TOLERANCE
 [0:09] MOTOR:  STOPPED     
 [0:09] TRACKER: ADJUSTING -> IDLE      (Sensors balanced or timeout reached)
+[0:30] TRACKER: Adjustment skipped due to low brightness. Avg=  35000 Thresh=  30000 ohms
 ```
 
 ### Configuration Functions
@@ -204,6 +205,10 @@ Terminal_setPrintPeriod(&terminal, 2000); // 2 seconds
 // Enable or disable periodic logs (off by default)
 Terminal_setPeriodicLogs(&terminal, true); // Enable
 Terminal_setPeriodicLogs(&terminal, false); // Disable
+// Set the EMA filter time constant in seconds (default 10s)
+Tracker_setBrightnessFilterTimeConstant(&tracker, 5.0f); // 5 seconds
+// Set the brightness threshold in ohms (default 30000)
+Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
 ```
 
 ### When Data is Printed
@@ -211,6 +216,14 @@ Terminal_setPeriodicLogs(&terminal, false); // Disable
 - **Movement Start**: When tracker transitions to ADJUSTING state
 - **Balance Changes**: When sensors become balanced or unbalanced
 - **State Changes**: Every tracker and motor state change
+- **Adjustment Skipped**: When the filtered brightness (resistance) is above the threshold (i.e., not bright enough)
+
+### Adjustment Logic
+- **Lower resistance means brighter.**
+- The tracker uses an exponential moving average (EMA) of the two sensor resistance values to determine if an adjustment should be made.
+- The EMA filter time constant is configurable (default 10s).
+- **The tracker only adjusts if the filtered resistance is BELOW the threshold (default 30 kΩ).**
+- If the filtered resistance is above the threshold (i.e., not bright enough), the adjustment is skipped and a log message is printed.
 
 ## Hardware Requirements
 

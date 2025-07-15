@@ -26,11 +26,15 @@ typedef struct
   unsigned long maxMovementTimeMs;
   unsigned long adjustmentPeriodMs;
   unsigned long samplingRateMs;
+  int32_t brightnessThresholdOhms;
+  float brightnessFilterTimeConstantS;
+  float filteredBrightness;
   
   // Timing variables
   unsigned long lastAdjustmentTime;
   unsigned long lastSamplingTime;
   unsigned long movementStartTime;
+  unsigned long lastBrightnessSampleTime;
   
   // State tracking
   bool isInitialized;
@@ -46,6 +50,8 @@ void Tracker_setTolerance( Tracker_t* tracker, float tolerancePercent );
 void Tracker_setMaxMovementTime( Tracker_t* tracker, unsigned long maxMovementTimeSeconds );
 void Tracker_setAdjustmentPeriod( Tracker_t* tracker, unsigned long adjustmentPeriodSeconds );
 void Tracker_setSamplingRate( Tracker_t* tracker, unsigned long samplingRateMs );
+void Tracker_setBrightnessThreshold( Tracker_t* tracker, int32_t thresholdOhms );
+void Tracker_setBrightnessFilterTimeConstant( Tracker_t* tracker, float tauS );
 
 // Status functions
 TrackerState_t Tracker_getState( Tracker_t* tracker );

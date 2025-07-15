@@ -38,5 +38,6 @@ void Terminal_logMotorStateChange( Terminal_t* terminal, MotorState_t oldState,
                                  MotorState_t newState );
 void Terminal_logSensorData( Terminal_t* terminal, PhotoSensor_t* eastSensor, 
                            PhotoSensor_t* westSensor, Tracker_t* tracker, bool isBalanced );
+void Terminal_logAdjustmentSkippedLowBrightness(Terminal_t* terminal, int32_t avgBrightness, int32_t threshold);
 
 #endif // TERMINAL_H 

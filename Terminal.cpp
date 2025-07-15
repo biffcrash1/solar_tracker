@@ -382,7 +382,17 @@ void Terminal_logSensorData( Terminal_t* terminal, PhotoSensor_t* eastSensor,
   if( tolerance < 100 ) Serial.print( " " );
   if( tolerance < 10 ) Serial.print( " " );
   Serial.print( tolerance );
-  
+
+  // Print EMA filtered brightness
+  Serial.print( " EMA=" );
+  int32_t ema = (int32_t)(tracker->filteredBrightness);
+  if( ema < 100000 ) Serial.print( " " );
+  if( ema < 10000 ) Serial.print( " " );
+  if( ema < 1000 ) Serial.print( " " );
+  if( ema < 100 ) Serial.print( " " );
+  if( ema < 10 ) Serial.print( " " );
+  Serial.print( ema );
+
   Serial.print( " " );
   
   if( isBalanced )
@@ -402,4 +412,35 @@ void Terminal_logSensorData( Terminal_t* terminal, PhotoSensor_t* eastSensor,
   }
   
   Serial.println();
+} 
+
+void Terminal_logAdjustmentSkippedLowBrightness(Terminal_t* terminal, int32_t avgBrightness, int32_t threshold)
+{
+  // 'terminal' is included for API consistency and future extensibility; cast to void to suppress unused warning.
+  (void)terminal;
+  unsigned long currentTime = millis();
+  unsigned long seconds = currentTime / 1000;
+  unsigned long minutes = seconds / 60;
+  seconds %= 60;
+
+  Serial.print("[");
+  Serial.print(minutes);
+  Serial.print(":");
+  if (seconds < 10) Serial.print("0");
+  Serial.print(seconds);
+  Serial.print("] TRACKER: Adjustment skipped due to low brightness. Avg=" );
+  if( avgBrightness < 100000 ) Serial.print( " " );
+  if( avgBrightness < 10000 ) Serial.print( " " );
+  if( avgBrightness < 1000 ) Serial.print( " " );
+  if( avgBrightness < 100 ) Serial.print( " " );
+  if( avgBrightness < 10 ) Serial.print( " " );
+  Serial.print(avgBrightness);
+  Serial.print(" Thresh=");
+  if( threshold < 100000 ) Serial.print( " " );
+  if( threshold < 10000 ) Serial.print( " " );
+  if( threshold < 1000 ) Serial.print( " " );
+  if( threshold < 100 ) Serial.print( " " );
+  if( threshold < 10 ) Serial.print( " " );
+  Serial.print(threshold);
+  Serial.println(" ohms");
 } 

@@ -1,4 +1,5 @@
 #include "Tracker.h"
+#include "Terminal.h"
 #include <math.h>
 
 //***********************************************************
@@ -30,11 +31,15 @@ void Tracker_init( Tracker_t* tracker, PhotoSensor_t* eastSensor, PhotoSensor_t*
   tracker->maxMovementTimeMs = TRACKER_MAX_MOVEMENT_TIME_SECONDS * 1000UL;
   tracker->adjustmentPeriodMs = TRACKER_ADJUSTMENT_PERIOD_SECONDS * 1000UL;
   tracker->samplingRateMs = TRACKER_SAMPLING_RATE_MS;
+  tracker->brightnessThresholdOhms = TRACKER_BRIGHTNESS_THRESHOLD_OHMS;
+  tracker->brightnessFilterTimeConstantS = TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S;
+  tracker->filteredBrightness = 0.0f;
   
   // Initialize timing variables
   tracker->lastAdjustmentTime = 0;
   tracker->lastSamplingTime = 0;
   tracker->movementStartTime = 0;
+  tracker->lastBrightnessSampleTime = 0;
   
   tracker->isInitialized = true;
 }
@@ -86,12 +91,38 @@ void Tracker_update( Tracker_t* tracker )
   switch( tracker->state )
   {
     case TRACKER_STATE_IDLE:
+      // Update filtered brightness (EMA)
+      if (tracker->lastBrightnessSampleTime == 0) {
+        tracker->lastBrightnessSampleTime = currentTime;
+        int32_t eastValue = PhotoSensor_getValue( tracker->eastSensor );
+        int32_t westValue = PhotoSensor_getValue( tracker->westSensor );
+        tracker->filteredBrightness = (eastValue + westValue) / 2.0f;
+      } else if (currentTime != tracker->lastBrightnessSampleTime) {
+        float dt = (currentTime - tracker->lastBrightnessSampleTime) / 1000.0f;
+        tracker->lastBrightnessSampleTime = currentTime;
+        int32_t eastValue = PhotoSensor_getValue( tracker->eastSensor );
+        int32_t westValue = PhotoSensor_getValue( tracker->westSensor );
+        float avgBrightness = (eastValue + westValue) / 2.0f;
+        float alpha = tracker->brightnessFilterTimeConstantS > 0 ? dt / tracker->brightnessFilterTimeConstantS : 1.0f;
+        if (alpha > 1.0f) alpha = 1.0f;
+        tracker->filteredBrightness += alpha * (avgBrightness - tracker->filteredBrightness);
+      }
       // Check if it's time for an adjustment
       if( currentTime - tracker->lastAdjustmentTime >= tracker->adjustmentPeriodMs )
       {
-        tracker->state = TRACKER_STATE_ADJUSTING;
-        tracker->lastSamplingTime = currentTime;
-        tracker->movementStartTime = currentTime;
+        if( tracker->filteredBrightness >= tracker->brightnessThresholdOhms )
+        {
+          // Log and skip adjustment
+          extern Terminal_t terminal;
+          Terminal_logAdjustmentSkippedLowBrightness(&terminal, (int32_t)tracker->filteredBrightness, tracker->brightnessThresholdOhms);
+          tracker->lastAdjustmentTime = currentTime; // Wait for next cycle
+        }
+        else
+        {
+          tracker->state = TRACKER_STATE_ADJUSTING;
+          tracker->lastSamplingTime = currentTime;
+          tracker->movementStartTime = currentTime;
+        }
       }
       break;
       
@@ -221,6 +252,45 @@ void Tracker_setAdjustmentPeriod( Tracker_t* tracker, unsigned long adjustmentPe
 void Tracker_setSamplingRate( Tracker_t* tracker, unsigned long samplingRateMs )
 {
   tracker->samplingRateMs = samplingRateMs;
+}
+
+//***********************************************************
+//     Function Name: Tracker_setBrightnessThreshold
+//
+//     Inputs:
+//     - tracker: Pointer to tracker structure
+//     - thresholdOhms: Brightness threshold in ohms
+//
+//     Returns:
+//     - None
+//
+//     Description:
+//     - Sets the brightness threshold for skipping adjustments.
+//
+//***********************************************************
+void Tracker_setBrightnessThreshold( Tracker_t* tracker, int32_t thresholdOhms )
+{
+  tracker->brightnessThresholdOhms = thresholdOhms;
+}
+
+//***********************************************************
+//     Function Name: Tracker_setBrightnessFilterTimeConstant
+//
+//     Inputs:
+//     - tracker: Pointer to tracker structure
+//     - tauS: Time constant in seconds for the EMA filter
+//
+//     Returns:
+//     - None
+//
+//     Description:
+//     - Sets the time constant for the exponential moving average
+//       filter applied to brightness values.
+//
+//***********************************************************
+void Tracker_setBrightnessFilterTimeConstant( Tracker_t* tracker, float tauS )
+{
+  tracker->brightnessFilterTimeConstantS = tauS;
 }
 
 //***********************************************************
