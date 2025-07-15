@@ -39,8 +39,8 @@ This project uses modern C++ classes for Arduino development, providing clean ob
 
 ### 2. C++ Class Methods
 - `PhotoSensor::begin()` - Initialize the sensor
-- `PhotoSensor::update()` - Update sensor readings every 100ms
-- `PhotoSensor::getValue()` - Get current resistance value
+- `PhotoSensor::update()` - Update sensor readings every 100ms with configurable resistance limit
+- `PhotoSensor::getValue()` - Get current resistance value (capped at configurable maximum)
 - `PhotoSensor::getPin()` - Get the analog pin number
 - `PhotoSensor::getSeriesResistor()` - Get the series resistor value
 - `MotorControl::begin()` - Initialize motor control
@@ -227,6 +227,26 @@ Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
 - **The tracker only adjusts if the filtered resistance is BELOW the threshold (default 30 kΩ).**
 - If the filtered resistance is above the threshold (i.e., not bright enough), the adjustment is skipped and a log message is printed.
 
+## Configuration
+
+### Sensor Settings
+- `SENSOR_MAX_RESISTANCE_OHMS` - Maximum resistance value for photosensors (default: 350,000 ohms)
+  - Prevents extremely high resistance values in low light conditions
+  - Configurable in `param_config.h`
+  - Applied to both sensors to maintain relative relationships
+
+### Tracker Settings
+- `TRACKER_TOLERANCE_PERCENT` - Tolerance percentage for sensor balance (default: 10.0%)
+- `TRACKER_MAX_MOVEMENT_TIME_SECONDS` - Maximum movement time (default: 15 seconds)
+- `TRACKER_ADJUSTMENT_PERIOD_SECONDS` - Time between adjustments (default: 30 seconds)
+- `TRACKER_SAMPLING_RATE_MS` - Sampling rate during movement (default: 100ms)
+- `TRACKER_BRIGHTNESS_THRESHOLD_OHMS` - Minimum brightness threshold (default: 30,000 ohms)
+- `TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S` - EMA filter time constant (default: 10 seconds)
+
+### Terminal Settings
+- `TERMINAL_PRINT_PERIOD_MS` - Print interval for sensor data (default: 1000ms)
+- `TERMINAL_ENABLE_PERIODIC_LOGS` - Enable periodic logging (default: true)
+
 ## Hardware Requirements
 
 - Arduino Mega 2560 (or compatible)
@@ -242,12 +262,27 @@ Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
 - Wire library (built-in)
 - Arduino.h (built-in)
 
-## Benefits of C Refactoring
+## Recent Updates
 
-1. **Smaller Memory Footprint** - No C++ overhead
-2. **Faster Compilation** - Simpler compilation process
-3. **Better for Embedded Systems** - More predictable memory usage
-4. **Easier Debugging** - Simpler function calls and data structures
+### Sensor Resistance Limiting
+- Added configurable maximum resistance limit (default: 350K ohms)
+- Prevents overflow issues in very low light conditions
+- Maintains sensor relative relationships while capping extreme values
+- Configurable via `SENSOR_MAX_RESISTANCE_OHMS` in `param_config.h`
+
+### Bug Fixes
+- Fixed MotorState_t type errors by using proper MotorControl::State enum
+- Corrected brightness tolerance calculation in Terminal module
+- Added missing case for perfectly balanced sensors (difference = 0)
+- Improved tracking accuracy and stability
+
+## Benefits of C++ Implementation
+
+1. **Object-Oriented Design** - Clean encapsulation and member functions
+2. **Type Safety** - Strong typing with enums and classes
+3. **Maintainability** - Modular design with clear interfaces
+4. **Configurability** - Centralized parameter configuration
+5. **Extensibility** - Easy to add new features and sensors
 5. **Cross-Platform Compatibility** - Standard C is more portable
 
 ## Notes

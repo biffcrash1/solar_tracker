@@ -30,4 +30,7 @@
 #define TERMINAL_PRINT_PERIOD_MS 1000  // 1 second
 #define TERMINAL_ENABLE_PERIODIC_LOGS true  // Disable periodic logs by default
 
+// Sensor settings
+#define SENSOR_MAX_RESISTANCE_OHMS 350000  // 350K ohms maximum resistance
+
 #endif // PARAM_CONFIG_H

@@ -1,4 +1,5 @@
 #include "Photosensor.h"
+#include "param_config.h"
 
 //***********************************************************
 //     Constructor: PhotoSensor
@@ -62,17 +63,22 @@ void PhotoSensor::update()
   {
     lastUpdate += 100;
     int reading = analogRead( pin );
+    uint32_t resistance;
     if( reading >= 1023 )
     {
-      value = INT32_MAX;
+      resistance = UINT32_MAX;
     }
     else
     {
       uint32_t num = (uint32_t)seriesResistor * reading;
       uint32_t den = 1023 - reading;
-      uint32_t resistance = den ? ( num / den ) : UINT32_MAX;
-      value = (int32_t)resistance;
+      resistance = den ? ( num / den ) : UINT32_MAX;
     }
+    // Limit resistance to configurable maximum
+    if (resistance > SENSOR_MAX_RESISTANCE_OHMS) {
+        resistance = SENSOR_MAX_RESISTANCE_OHMS;
+    }
+    value = (int32_t)resistance;
   }
 }
 

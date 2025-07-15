@@ -47,6 +47,7 @@ void Tracker::update() {
                 float alpha = brightnessFilterTimeConstantS > 0 ? dt / brightnessFilterTimeConstantS : 1.0f;
                 if (alpha > 1.0f) alpha = 1.0f;
                 filteredBrightness += alpha * (avgBrightness - filteredBrightness);
+                if (filteredBrightness < 0.0f) filteredBrightness = 0.0f;
             }
             // Check if it's time for an adjustment
             if (currentTime - lastAdjustmentTime >= adjustmentPeriodMs) {
