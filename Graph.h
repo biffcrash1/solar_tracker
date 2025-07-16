@@ -4,7 +4,8 @@
 #include <Adafruit_SSD1306.h>
 #include "param_config.h"
 
-typedef struct {
+typedef struct 
+{
   Adafruit_SSD1306* display;
   int buffer[SCREEN_WIDTH];
   int length;

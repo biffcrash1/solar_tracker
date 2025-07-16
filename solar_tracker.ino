@@ -30,7 +30,7 @@ Terminal terminal;
 //     - None
 //
 //     Description:
-//     - Initializes the solar tracker system including I2C, display, 
+//     - Initializes the solar tracker system including I2C, display,
 //       graph, and photosensors. Sets up initial timing variables.
 //
 //***********************************************************
@@ -71,13 +71,13 @@ void loop()
   // Update photosensor sampling every 100ms internally
   eastSensor.update();
   westSensor.update();
-  
+
   // Update motor control state
   motorControl.update();
-  
+
   // Update tracker state machine
   tracker.update();
-  
+
   // Update terminal logging
   terminal.update( &tracker, &motorControl, &eastSensor, &westSensor );
 

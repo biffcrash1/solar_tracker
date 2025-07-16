@@ -7,7 +7,8 @@
 #include "Photosensor.h"
 #include <stdint.h>
 
-typedef struct {
+typedef struct 
+{
   Adafruit_SSD1306* display;
 } DisplayModule_t;
 

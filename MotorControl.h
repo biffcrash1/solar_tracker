@@ -6,34 +6,34 @@
 
 class MotorControl {
 public:
-    enum State {
-        STOPPED,
-        MOVING_EAST,
-        MOVING_WEST,
-        DEAD_TIME
-    };
-    enum PendingCommand {
-        PENDING_NONE,
-        PENDING_EAST,
-        PENDING_WEST,
-        PENDING_STOP
-    };
+  enum State {
+    STOPPED,
+    MOVING_EAST,
+    MOVING_WEST,
+    DEAD_TIME
+  };
+  enum PendingCommand {
+    PENDING_NONE,
+    PENDING_EAST,
+    PENDING_WEST,
+    PENDING_STOP
+  };
 
-    MotorControl();
-    void begin();
-    void update();
-    void moveEast();
-    void moveWest();
-    void stop();
-    State getState() const;
-    void ensureSafety();
+  MotorControl();
+  void begin();
+  void update();
+  void moveEast();
+  void moveWest();
+  void stop();
+  State getState() const;
+  void ensureSafety();
 
 private:
-    State state;
-    unsigned long moveStartTime;
-    unsigned long deadTimeStart;
-    PendingCommand pendingCommand;
-    bool isInitialized;
+  State state;
+  unsigned long moveStartTime;
+  unsigned long deadTimeStart;
+  PendingCommand pendingCommand;
+  bool isInitialized;
 };
 
-#endif // MOTOR_CONTROL_H 
+#endif // MOTOR_CONTROL_H

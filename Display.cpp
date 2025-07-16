@@ -33,7 +33,7 @@ void DisplayModule_init( DisplayModule_t* module )
   module->display = &displayObj;
   module->display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
   module->display->clearDisplay();
-  
+
   // Initialize display timing variables
   if (!displayInitialized) {
     startTime = millis() / 1000;

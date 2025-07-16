@@ -21,11 +21,11 @@ PhotoSensor::PhotoSensor(uint8_t pin, uint32_t seriesResistor)
   this->seriesResistor = seriesResistor;
   this->value = 0;
   this->lastUpdate = 0;
-  
+
   // Initialize EMA filter
   this->filteredValue = 0.0f;
   this->filterInitialized = false;
-  
+
   // Calculate EMA filter coefficient: alpha = dt / (tau + dt)
   // where dt = sampling period, tau = time constant
   float dt = PHOTOSENSOR_SAMPLING_RATE_MS / 1000.0f;  // Convert to seconds
@@ -88,10 +88,10 @@ void PhotoSensor::update()
     }
     // Limit resistance to configurable maximum
     if (resistance > SENSOR_MAX_RESISTANCE_OHMS) {
-        resistance = SENSOR_MAX_RESISTANCE_OHMS;
+      resistance = SENSOR_MAX_RESISTANCE_OHMS;
     }
     value = (int32_t)resistance;
-    
+
     // Apply EMA filter
     if (!filterInitialized) {
       // Initialize filter with first reading

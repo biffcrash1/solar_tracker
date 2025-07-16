@@ -93,17 +93,17 @@ void Graph_draw( Graph_t* graph )
   const int width = SCREEN_WIDTH;
   const int height = SCREEN_HEIGHT / 2;
   const int yOffset = SCREEN_HEIGHT / 2;
-  
+
   graph->display->fillRect( 0, yOffset, width, height, SSD1306_BLACK );
   if( graph->length < 2 ) return;
-  
+
   int maxVal = graph->buffer[0];
   for( int i = 1; i < graph->length; i++ )
   {
     if( graph->buffer[i] > maxVal ) maxVal = graph->buffer[i];
   }
   if( maxVal <= 0 ) return;
-  
+
   float scale = ( height * GRAPH_SCALE_MARGIN ) / maxVal;
   for( int i = 1; i < graph->length; i++ )
   {
