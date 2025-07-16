@@ -1,0 +1,157 @@
+# Solar Tracker Project - Code Style and Commit Guidelines
+
+## Code Formatting Preferences
+
+### Parentheses and Spacing
+- **NO spaces** between keywords/function names and opening parentheses
+  - ✅ `if( condition )` 
+  - ✅ `function( param1, param2 )`
+  - ❌ `if ( condition )`
+  - ❌ `function ( param1, param2 )`
+
+- **Spaces inside parentheses** around text/expressions
+  - ✅ `( value + 1 )`
+  - ✅ `( eastValue + westValue ) / 2.0f`
+  - ❌ `(value + 1)`
+  - ❌ `(eastValue + westValue) / 2.0f`
+
+- **NO spaces** between consecutive parentheses of the same direction (except typecasting)
+  - ✅ `( (int32_t)value )` for typecasting
+  - ✅ `(( value + 1 ) * 2)` for nested expressions
+  - ❌ `((int32_t)value)` for typecasting
+  
+### Multi-line Formatting
+- **Vertical alignment** of parentheses at the same nested depth
+  - ✅ `function( param1,`
+  - ✅ `          param2,`
+  - ✅ `          param3 )`
+
+- **Opening and closing braces** on separate lines
+  - ✅ `if( condition )`
+  - ✅ `{`
+  - ✅ `  // code`
+  - ✅ `}`
+  - ❌ `if( condition ) {`
+
+### Comments
+- **Vertical alignment** of comments with the code they reference
+  - ✅ `// Check if sensors are balanced`
+  - ✅ `if( abs( eastValue - westValue ) <= tolerance )`
+
+### Indentation
+- **Two spaces** per indentation level
+- **Consistent indentation** throughout files
+
+## Commit Message Format
+
+### Structure
+```
+type: concise title describing main change
+
+- Specific change or improvement
+- Another specific change
+- Technical implementation details:
+  * Sub-detail 1
+  * Sub-detail 2
+- Additional improvements
+- Configuration changes
+
+Summary paragraph explaining benefits and impact.
+```
+
+### Commit Types
+- `feat:` - New features or major improvements
+- `fix:` - Bug fixes
+- `docs:` - Documentation changes
+- `refactor:` - Code refactoring without functional changes
+- `style:` - Code style/formatting changes
+- `test:` - Test additions or changes
+- `chore:` - Maintenance tasks
+
+### Examples
+```
+feat: enhance solar tracker with filtering, overshoot detection, and improved formatting
+
+- Increase photosensor sampling rate to 20ms with configurable EMA filter (200ms default)
+- Implement overshoot detection in tracker logic to prevent over-adjustment
+- Use filtered sensor values throughout system (display, terminal, tracker)
+- Refactor display update logic into dedicated function in Display.cpp
+- Apply consistent code formatting preferences across all files:
+  * No spaces between keywords/functions and opening parentheses
+  * Spaces inside parentheses around expressions
+  * Braces on separate lines
+  * Vertically aligned comments and multi-line parameters
+- Add comprehensive overshoot logging to terminal output
+- Update README with new features, configuration options, and code style guide
+- Improve tracker stability by preventing oscillation and over-adjustment
+- Add configurable parameters for sampling rate and filter time constants
+
+This commit significantly improves the solar tracker's precision, stability, and maintainability while establishing consistent code formatting standards.
+```
+
+## Project-Specific Guidelines
+
+### Arduino/C++ Conventions
+- Use `const` for immutable values
+- Prefer `uint8_t`, `uint32_t`, `int32_t` for specific bit sizes
+- Use `unsigned long` for millis() timing
+- Follow Arduino naming conventions for functions and variables
+
+### File Organization
+- Header files (.h) contain declarations
+- Implementation files (.cpp) contain definitions
+- Main sketch (.ino) contains setup() and loop()
+- Configuration constants in param_config.h
+- Pin definitions in pins_config.h
+
+### Documentation
+- Update README.md for all significant changes
+- Include code examples in documentation
+- Document configuration parameters and their defaults
+- Explain the reasoning behind design decisions
+
+## Quality Standards
+
+### Code Quality
+- All functions should have clear, descriptive names
+- Include comprehensive comments for complex logic
+- Maintain consistent error handling patterns
+- Ensure proper encapsulation in C++ classes
+
+### Testing
+- Test all new features thoroughly
+- Verify formatting changes don't break functionality
+- Ensure backward compatibility when possible
+- Document any breaking changes
+
+### Performance
+- Optimize for Arduino's limited resources
+- Minimize memory allocations in loops
+- Use efficient algorithms for real-time operations
+- Profile code when performance is critical 
+
+## C Function Header Format
+
+All C functions in legacy modules use a standardized comment header block with the following format:
+
+```
+//***********************************************************
+//     Function Name: <FunctionName>
+//
+//     Inputs:
+//     - <param1> : <description>
+//     - <param2> : <description>
+//     ...
+//
+//     Returns:
+//     - <return value or None>
+//
+//     Description:
+//     - <brief description of what the function does>
+//
+//***********************************************************
+```
+
+- Place the header immediately above each function definition.
+- Align parameter and section labels for readability.
+- Use this format for all C-style functions in Display, Graph, and similar modules. 
