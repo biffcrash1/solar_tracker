@@ -311,4 +311,49 @@ void Terminal::logOvershootDetected( bool movingEast, float eastValue, float wes
     if( tolerance < 10 ) Serial.print(" ");
     Serial.print((int32_t)tolerance);
     Serial.println(" ohms");
+}
+
+void Terminal::logReversalAbortedNoProgress( bool movingEast, float eastValue, float westValue,
+                                           float tolerance, float initialDiff )
+{
+  unsigned long currentTime = millis();
+  unsigned long seconds = currentTime / 1000;
+  unsigned long minutes = seconds / 60;
+  seconds %= 60;
+  Serial.print("[");
+  Serial.print(minutes);
+  Serial.print(":");
+  if( seconds < 10 ) Serial.print("0");
+  Serial.print(seconds);
+  Serial.print("] TRACKER: Reversal aborted - no progress while moving ");
+  Serial.print(movingEast ? "EAST" : "WEST");
+  Serial.print(". E=");
+  if( eastValue < 100000 ) Serial.print(" ");
+  if( eastValue < 10000 ) Serial.print(" ");
+  if( eastValue < 1000 ) Serial.print(" ");
+  if( eastValue < 100 ) Serial.print(" ");
+  if( eastValue < 10 ) Serial.print(" ");
+  Serial.print((int32_t)eastValue);
+  Serial.print(" W=");
+  if( westValue < 100000 ) Serial.print(" ");
+  if( westValue < 10000 ) Serial.print(" ");
+  if( westValue < 1000 ) Serial.print(" ");
+  if( westValue < 100 ) Serial.print(" ");
+  if( westValue < 10 ) Serial.print(" ");
+  Serial.print((int32_t)westValue);
+  Serial.print(" Tol=");
+  if( tolerance < 100000 ) Serial.print(" ");
+  if( tolerance < 10000 ) Serial.print(" ");
+  if( tolerance < 1000 ) Serial.print(" ");
+  if( tolerance < 100 ) Serial.print(" ");
+  if( tolerance < 10 ) Serial.print(" ");
+  Serial.print((int32_t)tolerance);
+  Serial.print(" InitDiff=");
+  if( initialDiff < 100000 ) Serial.print(" ");
+  if( initialDiff < 10000 ) Serial.print(" ");
+  if( initialDiff < 1000 ) Serial.print(" ");
+  if( initialDiff < 100 ) Serial.print(" ");
+  if( initialDiff < 10 ) Serial.print(" ");
+  Serial.print((int32_t)initialDiff);
+  Serial.println(" ohms");
 } 

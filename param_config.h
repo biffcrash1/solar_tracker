@@ -25,6 +25,7 @@
 #define TRACKER_SAMPLING_RATE_MS 100
 #define TRACKER_BRIGHTNESS_THRESHOLD_OHMS 30000  // 30 kOhms
 #define TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S 10  // 10 seconds
+#define TRACKER_REVERSAL_TIME_LIMIT_MS 1000  // 1 second default reversal time limit
 
 // Terminal settings
 #define TERMINAL_PRINT_PERIOD_MS 1000  // 1 second

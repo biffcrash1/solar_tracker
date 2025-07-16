@@ -99,11 +99,31 @@ All configuration constants are in `param_config.h`:
 ## Tracker Features
 
 - **Automatic tracking** with state machine logic
-- **Overshoot correction with reversal:** If movement overshoots, the tracker waits for a configurable dead time, then reverses direction to try and correct. This process repeats up to a configurable maximum number of tries (default 3), stopping if balance is achieved within threshold.
+- **Smart overshoot correction:**
+  - Detects when movement overshoots target position
+  - Waits for configurable dead time before attempting correction
+  - Each reversal movement is limited to configurable duration (default 1 second)
+  - Intelligently aborts correction if no progress is made:
+    * Stops if sensors aren't balanced AND haven't overshot in opposite direction
+    * Prevents wasteful oscillation when correction isn't helping
+  - Maximum number of reversal attempts is configurable (default 3)
+  - Detailed logging of correction attempts and outcomes
 - **Continuous brightness monitoring:** EMA-filtered brightness updates during movement to detect low light conditions
 - **Movement abortion:** stops ongoing movement if brightness drops below threshold
-- **Configurable:** tolerance, timing, filtering, reversal dead time, and max reversal tries
-- **Logs:** state changes, sensor values, overshoot, aborted adjustments, and skipped adjustments
+- **Configurable parameters:**
+  - Sensor tolerance percentage
+  - Movement timing (max time, adjustment period)
+  - Filtering constants
+  - Reversal dead time
+  - Reversal movement time limit
+  - Maximum reversal attempts
+- **Comprehensive logging:**
+  - State changes
+  - Sensor values
+  - Overshoot detection
+  - Reversal progress
+  - Aborted movements
+  - Skipped adjustments
 
 ---
 

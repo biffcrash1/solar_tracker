@@ -27,6 +27,7 @@ public:
   void setBrightnessFilterTimeConstant(float tauS);
   void setReversalDeadTime(unsigned long ms);
   void setMaxReversalTries(int tries);
+  void setReversalTimeLimit(unsigned long ms);
 
   // Status
   State getState() const;
@@ -54,9 +55,11 @@ private:
 
   // Overshoot correction
   unsigned long reversalDeadTimeMs; // ms to wait before reversing after overshoot
+  unsigned long reversalTimeLimitMs; // ms to limit each reversal movement
   int maxReversalTries;             // max number of reversal attempts
   int reversalTries;                // current reversal attempt count
   unsigned long reversalWaitStartTime; // when dead time started
+  unsigned long reversalStartTime;     // when reversal movement started
   bool waitingForReversal;          // are we in dead time before reversal?
   bool reversalDirection;           // direction to move after reversal (true=east, false=west)
 

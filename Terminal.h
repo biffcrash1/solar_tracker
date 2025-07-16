@@ -25,6 +25,8 @@ public:
   void logOvershootDetected( bool movingEast, float eastValue, float westValue,
                              float tolerance );
   void logAdjustmentAbortedLowBrightness(int32_t avgBrightness, int32_t threshold);
+  void logReversalAbortedNoProgress( bool movingEast, float eastValue, float westValue,
+                                    float tolerance, float initialDiff );
 
 private:
   unsigned long printPeriodMs;
