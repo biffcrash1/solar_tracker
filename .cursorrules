@@ -72,21 +72,15 @@ Summary paragraph explaining benefits and impact.
 
 ### Examples
 ```
-feat: enhance solar tracker with filtering, overshoot detection, and improved formatting
+feat: enhance solar tracker with filtering, and improved formatting
 
 - Increase photosensor sampling rate to 20ms with configurable EMA filter (200ms default)
 - Implement overshoot detection in tracker logic to prevent over-adjustment
-- Use filtered sensor values throughout system (display, terminal, tracker)
-- Refactor display update logic into dedicated function in Display.cpp
 - Apply consistent code formatting preferences across all files:
   * No spaces between keywords/functions and opening parentheses
   * Spaces inside parentheses around expressions
-  * Braces on separate lines
-  * Vertically aligned comments and multi-line parameters
-- Add comprehensive overshoot logging to terminal output
 - Update README with new features, configuration options, and code style guide
 - Improve tracker stability by preventing oscillation and over-adjustment
-- Add configurable parameters for sampling rate and filter time constants
 
 This commit significantly improves the solar tracker's precision, stability, and maintainability while establishing consistent code formatting standards.
 ```
