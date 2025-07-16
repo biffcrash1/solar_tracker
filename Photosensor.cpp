@@ -71,6 +71,37 @@ void PhotoSensor::begin()
 void PhotoSensor::update()
 {
   unsigned long now = millis();
+  
+  // Always read and initialize on first update
+  if( !filterInitialized )
+  {
+    int reading = analogRead( pin );
+    uint32_t resistance;
+    if( reading >= 1023 )
+    {
+      resistance = UINT32_MAX;
+    }
+    else
+    {
+      uint32_t num = (uint32_t)seriesResistor * reading;
+      uint32_t den = 1023 - reading;
+      resistance = den ? ( num / den ) : UINT32_MAX;
+    }
+    // Limit resistance to configurable maximum
+    if( resistance > SENSOR_MAX_RESISTANCE_OHMS )
+    {
+      resistance = SENSOR_MAX_RESISTANCE_OHMS;
+    }
+    value = (int32_t)resistance;
+    
+    // Initialize filter with first reading
+    filteredValue = (float)value;
+    filterInitialized = true;
+    lastUpdate = now;
+    return;
+  }
+
+  // Regular update at configured interval
   if( now - lastUpdate >= PHOTOSENSOR_SAMPLING_RATE_MS )
   {
     lastUpdate += PHOTOSENSOR_SAMPLING_RATE_MS;
@@ -87,20 +118,14 @@ void PhotoSensor::update()
       resistance = den ? ( num / den ) : UINT32_MAX;
     }
     // Limit resistance to configurable maximum
-    if (resistance > SENSOR_MAX_RESISTANCE_OHMS) {
+    if( resistance > SENSOR_MAX_RESISTANCE_OHMS )
+    {
       resistance = SENSOR_MAX_RESISTANCE_OHMS;
     }
     value = (int32_t)resistance;
 
-    // Apply EMA filter
-    if (!filterInitialized) {
-      // Initialize filter with first reading
-      filteredValue = (float)value;
-      filterInitialized = true;
-    } else {
-      // Apply EMA filter: filtered = alpha * new + (1-alpha) * filtered_old
-      filteredValue = alpha * (float)value + (1.0f - alpha) * filteredValue;
-    }
+    // Apply EMA filter: filtered = alpha * new + (1-alpha) * filtered_old
+    filteredValue = alpha * (float)value + (1.0f - alpha) * filteredValue;
   }
 }
 

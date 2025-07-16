@@ -11,7 +11,8 @@ public:
   enum State 
   {
     IDLE,
-    ADJUSTING
+    ADJUSTING,
+    NIGHT_MODE
   };
 
   Tracker( PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl* motorControl );
@@ -28,10 +29,17 @@ public:
   void setReversalDeadTime( unsigned long ms );
   void setMaxReversalTries( int tries );
   void setReversalTimeLimit( unsigned long ms );
+  void setNightThreshold( int32_t thresholdOhms );
+  void setNightHysteresis( float hysteresisPercent );
+  void setNightDetectionTime( unsigned long detectionTimeSeconds );
 
   // Status
   State getState() const;
   bool isAdjusting() const;
+  bool isNightMode() const 
+  {
+    return state == NIGHT_MODE;
+  }
   unsigned long getTimeUntilNextAdjustment() const;
   float getFilteredBrightness() const 
   {
@@ -52,6 +60,15 @@ private:
   int32_t brightnessThresholdOhms;
   float brightnessFilterTimeConstantS;
   float filteredBrightness;
+
+  // Night mode configuration
+  int32_t nightThresholdOhms;
+  float nightHysteresisPercent;
+  unsigned long nightDetectionTimeMs;
+  unsigned long nightModeStartTime;
+  unsigned long dayModeStartTime;
+  bool nightConditionMet;
+  bool dayConditionMet;
 
   // Overshoot correction
   unsigned long reversalDeadTimeMs; // ms to wait before reversing after overshoot

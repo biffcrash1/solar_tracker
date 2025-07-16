@@ -8,6 +8,7 @@ A modular, object-oriented solar tracker for Arduino, using modern C++ classes a
 
 - **Tracks the sun** using two photoresistors and a motorized panel.
 - **Automatic adjustment** with configurable tolerance, timing, and filtering.
+- **Night mode** with automatic east return and day/night transitions.
 - **Modular design**: Each subsystem (sensors, motor, tracker, display, terminal) is encapsulated in its own class or module.
 - **Comprehensive serial logging** for monitoring and debugging.
 
@@ -98,7 +99,16 @@ All configuration constants are in `param_config.h`:
 
 ## Tracker Features
 
-- **Automatic tracking** with state machine logic
+- **State Machine Logic:**
+  - IDLE: Default state, waiting for next adjustment period
+  - ADJUSTING: Actively moving panel to balance sensors
+  - NIGHT_MODE: Panel moved to east position during low light conditions
+- **Night Mode Operation:**
+  - Automatic day/night detection using configurable threshold
+  - Hysteresis to prevent oscillation at threshold boundaries
+  - Configurable detection time to confirm transitions
+  - Panel returns to full east position during night
+  - Smooth transition back to tracking when day returns
 - **Smart overshoot correction:**
   - Detects when movement overshoots target position
   - Waits for configurable dead time before attempting correction
@@ -117,13 +127,16 @@ All configuration constants are in `param_config.h`:
   - Reversal dead time
   - Reversal movement time limit
   - Maximum reversal attempts
+  - Night mode threshold and hysteresis
+  - Night/day detection time
 - **Comprehensive logging:**
-  - State changes
-  - Sensor values
+  - State changes (including night mode transitions)
+  - Sensor values and brightness levels
   - Overshoot detection
   - Reversal progress
   - Aborted movements
   - Skipped adjustments
+  - Day/night transitions
 
 ---
 
@@ -139,6 +152,9 @@ All configuration constants are in `param_config.h`:
 
 ## Recent Improvements
 
+- Added night mode with automatic east return
+- Enhanced state machine with dedicated night mode state
+- Improved day/night transition handling with hysteresis
 - Configurable sensor resistance limit to prevent overflow
 - Improved tracking accuracy and stability
 - Bug fixes for motor state and tolerance calculation

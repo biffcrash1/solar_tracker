@@ -36,4 +36,9 @@
 #define PHOTOSENSOR_SAMPLING_RATE_MS 20    // 20ms sampling rate
 #define PHOTOSENSOR_EMA_TIME_CONSTANT_MS 200  // 200ms EMA filter time constant
 
+// Night mode settings
+#define TRACKER_NIGHT_THRESHOLD_OHMS 150000  // 150K ohms default night threshold
+#define TRACKER_NIGHT_HYSTERESIS_PERCENT 10.0f  // 10% hysteresis for day/night transitions
+#define TRACKER_NIGHT_DETECTION_TIME_SECONDS 300  // 300 seconds (5 minutes) to confirm night/day transitions
+
 #endif // PARAM_CONFIG_H

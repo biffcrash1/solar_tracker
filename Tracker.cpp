@@ -13,7 +13,14 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     samplingRateMs(TRACKER_SAMPLING_RATE_MS),
     brightnessThresholdOhms(TRACKER_BRIGHTNESS_THRESHOLD_OHMS),
     brightnessFilterTimeConstantS(TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S),
-    filteredBrightness(0.0f),
+    filteredBrightness(0.0f),  // Will be initialized with first sample in update()
+    nightThresholdOhms(TRACKER_NIGHT_THRESHOLD_OHMS),
+    nightHysteresisPercent(TRACKER_NIGHT_HYSTERESIS_PERCENT),
+    nightDetectionTimeMs(TRACKER_NIGHT_DETECTION_TIME_SECONDS * 1000UL),
+    nightModeStartTime(0),
+    dayModeStartTime(0),
+    nightConditionMet(false),
+    dayConditionMet(false),
     reversalDeadTimeMs(1000),
     reversalTimeLimitMs(TRACKER_REVERSAL_TIME_LIMIT_MS),
     maxReversalTries(3),
@@ -44,6 +51,10 @@ void Tracker::begin()
   waitingForReversal = false;
   reversalWaitStartTime = 0;
   reversalDirection = false;
+  nightConditionMet = false;
+  dayConditionMet = false;
+  nightModeStartTime = 0;
+  dayModeStartTime = 0;
 }
 
 void Tracker::update()
@@ -51,29 +62,55 @@ void Tracker::update()
   unsigned long currentTime = millis();
   
   // Update filtered brightness (EMA) - runs in all states
+  float eastValue = eastSensor->getFilteredValue();
+  float westValue = westSensor->getFilteredValue();
+  float avgBrightness = ( eastValue + westValue ) / 2.0f;
+
+  // Initialize or update EMA filter
   if( lastBrightnessSampleTime == 0 )
   {
+    // Initialize with first sample
+    filteredBrightness = avgBrightness;
     lastBrightnessSampleTime = currentTime;
-    float eastValue = eastSensor->getFilteredValue();
-    float westValue = westSensor->getFilteredValue();
-    filteredBrightness = ( eastValue + westValue ) / 2.0f;
   }
   else if( currentTime != lastBrightnessSampleTime )
   {
     float dt = ( currentTime - lastBrightnessSampleTime ) / 1000.0f;
     lastBrightnessSampleTime = currentTime;
-    float eastValue = eastSensor->getFilteredValue();
-    float westValue = westSensor->getFilteredValue();
-    float avgBrightness = ( eastValue + westValue ) / 2.0f;
     float alpha = brightnessFilterTimeConstantS > 0 ? dt / brightnessFilterTimeConstantS : 1.0f;
     if( alpha > 1.0f ) alpha = 1.0f;
     filteredBrightness += ( alpha * ( avgBrightness - filteredBrightness ));
     if( filteredBrightness < 0.0f ) filteredBrightness = 0.0f;
   }
-  
+
   switch( state )
   {
     case IDLE:
+      // Check for night condition
+      if( filteredBrightness >= nightThresholdOhms )
+      {
+        if( !nightConditionMet )
+        {
+          nightConditionMet = true;
+          nightModeStartTime = currentTime;
+        }
+        else if( currentTime - nightModeStartTime >= nightDetectionTimeMs )
+        {
+          extern Terminal terminal;
+          terminal.logNightModeEntered( (int32_t)filteredBrightness, nightThresholdOhms );
+          state = NIGHT_MODE;
+          motorControl->stop();
+          motorControl->moveEast();  // Move to full east position
+          dayConditionMet = false;
+          dayModeStartTime = 0;
+          break;
+        }
+      }
+      else
+      {
+        nightConditionMet = false;
+        nightModeStartTime = 0;
+      }
       // Check if it's time for an adjustment
       if( currentTime - lastAdjustmentTime >= adjustmentPeriodMs )
       {
@@ -97,6 +134,38 @@ void Tracker::update()
         }
       }
       break;
+
+    case NIGHT_MODE:
+    {
+      float dayThreshold = nightThresholdOhms * ( 1.0f - nightHysteresisPercent / 100.0f );
+      if( filteredBrightness <= dayThreshold )
+      {
+        if( !dayConditionMet )
+        {
+          dayConditionMet = true;
+          dayModeStartTime = currentTime;
+        }
+        else if( currentTime - dayModeStartTime >= nightDetectionTimeMs )
+        {
+          extern Terminal terminal;
+          terminal.logDayModeEntered( (int32_t)filteredBrightness, (int32_t)dayThreshold );
+          state = IDLE;
+          motorControl->stop();
+          lastAdjustmentTime = currentTime;  // Reset adjustment timer
+          nightConditionMet = false;
+          nightModeStartTime = 0;
+          break;
+        }
+      }
+      else
+      {
+        dayConditionMet = false;
+        dayModeStartTime = 0;
+      }
+      // Remain in NIGHT_MODE, do not perform tracking or movement except move to east on entry
+      break;
+    }
+
     case ADJUSTING:
       // Check if maximum movement time exceeded
       if( currentTime - movementStartTime >= maxMovementTimeMs )
@@ -270,9 +339,33 @@ void Tracker::setSamplingRate( unsigned long samplingRateMs )
   this->samplingRateMs = samplingRateMs;
 }
 
-void Tracker::setBrightnessThreshold( int32_t thresholdOhms )
+void Tracker::setNightThreshold(int32_t thresholdOhms)
 {
-  brightnessThresholdOhms = thresholdOhms;
+  if( thresholdOhms > brightnessThresholdOhms )
+  {
+    nightThresholdOhms = thresholdOhms;
+  }
+}
+
+void Tracker::setNightHysteresis(float hysteresisPercent)
+{
+  if( hysteresisPercent >= 0.0f && hysteresisPercent <= 100.0f )
+  {
+    nightHysteresisPercent = hysteresisPercent;
+  }
+}
+
+void Tracker::setNightDetectionTime(unsigned long detectionTimeSeconds)
+{
+  nightDetectionTimeMs = detectionTimeSeconds * 1000UL;
+}
+
+void Tracker::setBrightnessThreshold(int32_t thresholdOhms)
+{
+  if( thresholdOhms < nightThresholdOhms )
+  {
+    brightnessThresholdOhms = thresholdOhms;
+  }
 }
 
 void Tracker::setBrightnessFilterTimeConstant( float tauS )

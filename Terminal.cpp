@@ -33,9 +33,23 @@ void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor*
                 {
                     reason = "Sensors balanced or timeout reached";
                 }
+                else if( lastTrackerState == Tracker::NIGHT_MODE )
+                {
+                    reason = "Day mode entered";
+                }
                 break;
             case Tracker::ADJUSTING:
-                reason = "Adjustment period started";
+                if( lastTrackerState == Tracker::IDLE )
+                {
+                    reason = "Adjustment period started";
+                }
+                else if( lastTrackerState == Tracker::NIGHT_MODE )
+                {
+                    reason = "Day mode entered, starting adjustment";
+                }
+                break;
+            case Tracker::NIGHT_MODE:
+                reason = "Night mode entered";
                 break;
         }
         logTrackerStateChange(lastTrackerState, currentTrackerState, reason);
@@ -104,14 +118,16 @@ void Terminal::logTrackerStateChange(Tracker::State oldState, Tracker::State new
     Serial.print("] TRACKER: ");
     switch (oldState)
     {
-        case Tracker::IDLE: Serial.print("IDLE      "); break;
-        case Tracker::ADJUSTING: Serial.print("ADJUSTING "); break;
+        case Tracker::IDLE: Serial.print("IDLE       "); break;
+        case Tracker::ADJUSTING: Serial.print("ADJUSTING  "); break;
+        case Tracker::NIGHT_MODE: Serial.print("NIGHT_MODE "); break;
     }
     Serial.print(" -> ");
     switch (newState)
     {
-        case Tracker::IDLE: Serial.print("IDLE      "); break;
-        case Tracker::ADJUSTING: Serial.print("ADJUSTING "); break;
+        case Tracker::IDLE: Serial.print("IDLE       "); break;
+        case Tracker::ADJUSTING: Serial.print("ADJUSTING  "); break;
+        case Tracker::NIGHT_MODE: Serial.print("NIGHT_MODE "); break;
     }
     if( strlen(reason) > 0 )
     {
@@ -356,4 +372,60 @@ void Terminal::logReversalAbortedNoProgress( bool movingEast, float eastValue, f
   if( initialDiff < 10 ) Serial.print(" ");
   Serial.print((int32_t)initialDiff);
   Serial.println(" ohms");
+} 
+
+void Terminal::logNightModeEntered( int32_t avgBrightness, int32_t threshold )
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Night mode entered. Avg brightness=");
+    if( avgBrightness < 100000 ) Serial.print(" ");
+    if( avgBrightness < 10000 ) Serial.print(" ");
+    if( avgBrightness < 1000 ) Serial.print(" ");
+    if( avgBrightness < 100 ) Serial.print(" ");
+    if( avgBrightness < 10 ) Serial.print(" ");
+    Serial.print(avgBrightness);
+    Serial.print(" ohms exceeded threshold=");
+    if( threshold < 100000 ) Serial.print(" ");
+    if( threshold < 10000 ) Serial.print(" ");
+    if( threshold < 1000 ) Serial.print(" ");
+    if( threshold < 100 ) Serial.print(" ");
+    if( threshold < 10 ) Serial.print(" ");
+    Serial.print(threshold);
+    Serial.println(" ohms");
+}
+
+void Terminal::logDayModeEntered( int32_t avgBrightness, int32_t threshold )
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Day mode entered. Avg brightness=");
+    if( avgBrightness < 100000 ) Serial.print(" ");
+    if( avgBrightness < 10000 ) Serial.print(" ");
+    if( avgBrightness < 1000 ) Serial.print(" ");
+    if( avgBrightness < 100 ) Serial.print(" ");
+    if( avgBrightness < 10 ) Serial.print(" ");
+    Serial.print(avgBrightness);
+    Serial.print(" ohms fell below threshold=");
+    if( threshold < 100000 ) Serial.print(" ");
+    if( threshold < 10000 ) Serial.print(" ");
+    if( threshold < 1000 ) Serial.print(" ");
+    if( threshold < 100 ) Serial.print(" ");
+    if( threshold < 10 ) Serial.print(" ");
+    Serial.print(threshold);
+    Serial.println(" ohms");
 } 

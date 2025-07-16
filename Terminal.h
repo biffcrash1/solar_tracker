@@ -27,6 +27,8 @@ public:
   void logAdjustmentAbortedLowBrightness( int32_t avgBrightness, int32_t threshold );
   void logReversalAbortedNoProgress( bool movingEast, float eastValue, float westValue,
                                     float tolerance, float initialDiff );
+  void logNightModeEntered( int32_t avgBrightness, int32_t threshold );
+  void logDayModeEntered( int32_t avgBrightness, int32_t threshold );
 
 private:
   unsigned long printPeriodMs;
