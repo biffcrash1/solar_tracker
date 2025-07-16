@@ -24,6 +24,7 @@ public:
   void logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t threshold);
   void logOvershootDetected( bool movingEast, float eastValue, float westValue,
                              float tolerance );
+  void logAdjustmentAbortedLowBrightness(int32_t avgBrightness, int32_t threshold);
 
 private:
   unsigned long printPeriodMs;

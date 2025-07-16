@@ -15,9 +15,11 @@
   - ❌ `(value + 1)`
   - ❌ `(eastValue + westValue) / 2.0f`
 
-- **NO spaces** between consecutive parentheses of the same direction (except typecasting)
+- **NO spaces between consecutive parentheses of the same direction** (e.g., `if(( a > b ) && ( b > c ))`),
+  except for typecasting, which should have a space (e.g., `( (int32_t)value )`).
+  - ✅ `if(( value + 1 ) * 2 )` for nested expressions
   - ✅ `( (int32_t)value )` for typecasting
-  - ✅ `(( value + 1 ) * 2)` for nested expressions
+  - ❌ `if( ( value + 1 ) * 2 )` (extra space between parens)
   - ❌ `((int32_t)value)` for typecasting
   
 ### Multi-line Formatting

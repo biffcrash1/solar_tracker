@@ -99,9 +99,11 @@ All configuration constants are in `param_config.h`:
 ## Tracker Features
 
 - **Automatic tracking** with state machine logic
-- **Overshoot detection**: stops if the opposite sensor becomes brighter by the tolerance
+- **Overshoot detection**: stops if the difference between sensors reverses sign and exceeds tolerance
+- **Continuous brightness monitoring**: EMA-filtered brightness updates during movement to detect low light conditions
+- **Movement abortion**: stops ongoing movement if brightness drops below threshold
 - **Configurable**: tolerance, timing, and filtering
-- **Logs**: state changes, sensor values, overshoot, and skipped adjustments
+- **Logs**: state changes, sensor values, overshoot, aborted adjustments, and skipped adjustments
 
 ---
 

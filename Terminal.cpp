@@ -248,6 +248,34 @@ void Terminal::logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t 
     Serial.println(" ohms");
 }
 
+void Terminal::logAdjustmentAbortedLowBrightness(int32_t avgBrightness, int32_t threshold)
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Adjustment aborted due to low brightness. Avg=");
+    if( avgBrightness < 100000 ) Serial.print(" ");
+    if( avgBrightness < 10000 ) Serial.print(" ");
+    if( avgBrightness < 1000 ) Serial.print(" ");
+    if( avgBrightness < 100 ) Serial.print(" ");
+    if( avgBrightness < 10 ) Serial.print(" ");
+    Serial.print(avgBrightness);
+    Serial.print(" Thresh=");
+    if( threshold < 100000 ) Serial.print(" ");
+    if( threshold < 10000 ) Serial.print(" ");
+    if( threshold < 1000 ) Serial.print(" ");
+    if( threshold < 100 ) Serial.print(" ");
+    if( threshold < 10 ) Serial.print(" ");
+    Serial.print(threshold);
+    Serial.println(" ohms");
+}
+
 void Terminal::logOvershootDetected( bool movingEast, float eastValue, float westValue, float tolerance )
 {
     unsigned long currentTime = millis();

@@ -36,29 +36,31 @@ void Tracker::begin()
 void Tracker::update()
 {
   unsigned long currentTime = millis();
+  
+  // Update filtered brightness (EMA) - runs in all states
+  if( lastBrightnessSampleTime == 0 )
+  {
+    lastBrightnessSampleTime = currentTime;
+    float eastValue = eastSensor->getFilteredValue();
+    float westValue = westSensor->getFilteredValue();
+    filteredBrightness = ( eastValue + westValue ) / 2.0f;
+  }
+  else if( currentTime != lastBrightnessSampleTime )
+  {
+    float dt = ( currentTime - lastBrightnessSampleTime ) / 1000.0f;
+    lastBrightnessSampleTime = currentTime;
+    float eastValue = eastSensor->getFilteredValue();
+    float westValue = westSensor->getFilteredValue();
+    float avgBrightness = ( eastValue + westValue ) / 2.0f;
+    float alpha = brightnessFilterTimeConstantS > 0 ? dt / brightnessFilterTimeConstantS : 1.0f;
+    if( alpha > 1.0f ) alpha = 1.0f;
+    filteredBrightness += alpha * ( avgBrightness - filteredBrightness );
+    if( filteredBrightness < 0.0f ) filteredBrightness = 0.0f;
+  }
+  
   switch( state )
   {
     case IDLE:
-      // Update filtered brightness (EMA)
-      if( lastBrightnessSampleTime == 0 )
-      {
-        lastBrightnessSampleTime = currentTime;
-        float eastValue = eastSensor->getFilteredValue();
-        float westValue = westSensor->getFilteredValue();
-        filteredBrightness = ( eastValue + westValue ) / 2.0f;
-      }
-      else if( currentTime != lastBrightnessSampleTime )
-      {
-        float dt = ( currentTime - lastBrightnessSampleTime ) / 1000.0f;
-        lastBrightnessSampleTime = currentTime;
-        float eastValue = eastSensor->getFilteredValue();
-        float westValue = westSensor->getFilteredValue();
-        float avgBrightness = ( eastValue + westValue ) / 2.0f;
-        float alpha = brightnessFilterTimeConstantS > 0 ? dt / brightnessFilterTimeConstantS : 1.0f;
-        if( alpha > 1.0f ) alpha = 1.0f;
-        filteredBrightness += alpha * ( avgBrightness - filteredBrightness );
-        if( filteredBrightness < 0.0f ) filteredBrightness = 0.0f;
-      }
       // Check if it's time for an adjustment
       if( currentTime - lastAdjustmentTime >= adjustmentPeriodMs )
       {
@@ -77,6 +79,7 @@ void Tracker::update()
           // Store initial sensor values for overshoot detection
           initialEastValue = eastSensor->getFilteredValue();
           initialWestValue = westSensor->getFilteredValue();
+          initialDiff = initialEastValue - initialWestValue;
           movementDirectionSet = false;
         }
       }
@@ -97,9 +100,19 @@ void Tracker::update()
         float westValue = westSensor->getFilteredValue();
         float lowerValue = ( eastValue < westValue ) ? eastValue : westValue;
         float tolerance = ( lowerValue * tolerancePercent / 100.0f );
+        float currentDiff = eastValue - westValue;
 
+        // Stop movement if filtered brightness falls below threshold
+        if( filteredBrightness >= brightnessThresholdOhms )
+        {
+          extern Terminal terminal;
+          terminal.logAdjustmentAbortedLowBrightness( (int32_t)filteredBrightness, brightnessThresholdOhms );
+          motorControl->stop();
+          state = IDLE;
+          lastAdjustmentTime = currentTime;
+        }
         // Check if sensors are balanced within tolerance
-        if( abs( eastValue - westValue ) <= tolerance )
+        else if( abs( eastValue - westValue ) <= tolerance )
         {
           motorControl->stop();
           state = IDLE;
@@ -116,21 +129,9 @@ void Tracker::update()
 
           // Check for overshoot
           bool overshootDetected = false;
-          if( movingEast )
+          if(( currentDiff * initialDiff < 0 ) && ( fabs( currentDiff ) > tolerance ))
           {
-            // Moving east: check if west sensor became brighter by at least tolerance
-            if( westValue < initialWestValue - tolerance )
-            {
-              overshootDetected = true;
-            }
-          }
-          else
-          {
-            // Moving west: check if east sensor became brighter by at least tolerance
-            if( eastValue < initialEastValue - tolerance )
-            {
-              overshootDetected = true;
-            }
+            overshootDetected = true;
           }
 
           if( overshootDetected )

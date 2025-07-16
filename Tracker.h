@@ -59,6 +59,7 @@ private:
   // Overshoot detection
   float initialEastValue;
   float initialWestValue;
+  float initialDiff;
   bool movementDirectionSet;
   bool movingEast;
 };
