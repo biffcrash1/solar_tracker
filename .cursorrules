@@ -22,6 +22,12 @@
   - ❌ `if( ( value + 1 ) * 2 )` (extra space between parens)
   - ❌ `((int32_t)value)` for typecasting
   
+- **Spaces after opening and before closing parentheses for function declarations with parameters**
+  - ✅ `void foo( int x, float y );`
+  - ❌ `void foo(int x, float y);`
+  - ❌ `void foo( int x, float y);`
+  - ❌ `void foo(int x, float y );`
+
 ### Multi-line Formatting
 - **Vertical alignment** of parentheses at the same nested depth
   - ✅ `function( param1,`
@@ -34,6 +40,14 @@
   - ✅ `  // code`
   - ✅ `}`
   - ❌ `if( condition ) {`
+
+- **Enum definitions** should have their opening and closing braces on separate lines, like function definitions
+  - ✅ `enum State
+    {
+      IDLE,
+      ADJUSTING
+    };`
+  - ❌ `enum State { IDLE, ADJUSTING };`
 
 ### Comments
 - **Vertical alignment** of comments with the code they reference

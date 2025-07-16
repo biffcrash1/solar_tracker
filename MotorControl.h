@@ -6,13 +6,15 @@
 
 class MotorControl {
 public:
-  enum State {
+  enum State
+  {
     STOPPED,
     MOVING_EAST,
     MOVING_WEST,
     DEAD_TIME
   };
-  enum PendingCommand {
+  enum PendingCommand
+  {
     PENDING_NONE,
     PENDING_EAST,
     PENDING_WEST,

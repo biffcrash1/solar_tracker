@@ -14,20 +14,20 @@ public:
     ADJUSTING
   };
 
-  Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl* motorControl);
+  Tracker( PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl* motorControl );
   void begin();
   void update();
 
   // Configuration
-  void setTolerance(float tolerancePercent);
-  void setMaxMovementTime(unsigned long maxMovementTimeSeconds);
-  void setAdjustmentPeriod(unsigned long adjustmentPeriodSeconds);
-  void setSamplingRate(unsigned long samplingRateMs);
-  void setBrightnessThreshold(int32_t thresholdOhms);
-  void setBrightnessFilterTimeConstant(float tauS);
-  void setReversalDeadTime(unsigned long ms);
-  void setMaxReversalTries(int tries);
-  void setReversalTimeLimit(unsigned long ms);
+  void setTolerance( float tolerancePercent );
+  void setMaxMovementTime( unsigned long maxMovementTimeSeconds );
+  void setAdjustmentPeriod( unsigned long adjustmentPeriodSeconds );
+  void setSamplingRate( unsigned long samplingRateMs );
+  void setBrightnessThreshold( int32_t thresholdOhms );
+  void setBrightnessFilterTimeConstant( float tauS );
+  void setReversalDeadTime( unsigned long ms );
+  void setMaxReversalTries( int tries );
+  void setReversalTimeLimit( unsigned long ms );
 
   // Status
   State getState() const;

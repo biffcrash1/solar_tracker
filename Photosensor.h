@@ -18,7 +18,7 @@ private:
 
 public:
   // Constructor
-  PhotoSensor(uint8_t pin, uint32_t seriesResistor);
+  PhotoSensor( uint8_t pin, uint32_t seriesResistor );
 
   // Initialization
   void begin();

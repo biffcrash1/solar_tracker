@@ -11,20 +11,20 @@ class Terminal {
 public:
   Terminal();
   void begin();
-  void update(Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor);
+  void update( Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor );
 
   // Configuration
-  void setPrintPeriod(unsigned long printPeriodMs);
-  void setPeriodicLogs(bool enable);
+  void setPrintPeriod( unsigned long printPeriodMs );
+  void setPeriodicLogs( bool enable );
 
   // Logging
-  void logTrackerStateChange(Tracker::State oldState, Tracker::State newState, const char* reason);
-  void logMotorStateChange(MotorControl::State oldState, MotorControl::State newState);
-  void logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, Tracker* tracker, bool isBalanced);
-  void logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t threshold);
+  void logTrackerStateChange( Tracker::State oldState, Tracker::State newState, const char* reason );
+  void logMotorStateChange( MotorControl::State oldState, MotorControl::State newState );
+  void logSensorData( PhotoSensor* eastSensor, PhotoSensor* westSensor, Tracker* tracker, bool isBalanced );
+  void logAdjustmentSkippedLowBrightness( int32_t avgBrightness, int32_t threshold );
   void logOvershootDetected( bool movingEast, float eastValue, float westValue,
                              float tolerance );
-  void logAdjustmentAbortedLowBrightness(int32_t avgBrightness, int32_t threshold);
+  void logAdjustmentAbortedLowBrightness( int32_t avgBrightness, int32_t threshold );
   void logReversalAbortedNoProgress( bool movingEast, float eastValue, float westValue,
                                     float tolerance, float initialDiff );
 
