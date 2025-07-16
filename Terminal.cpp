@@ -1,7 +1,6 @@
 #include "Terminal.h"
 
 Terminal::Terminal()
-{
     : printPeriodMs(TERMINAL_PRINT_PERIOD_MS),
       lastPrintTime(0),
       enablePeriodicLogs(TERMINAL_ENABLE_PERIODIC_LOGS),
