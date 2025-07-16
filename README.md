@@ -99,11 +99,11 @@ All configuration constants are in `param_config.h`:
 ## Tracker Features
 
 - **Automatic tracking** with state machine logic
-- **Overshoot detection**: stops if the difference between sensors reverses sign and exceeds tolerance
-- **Continuous brightness monitoring**: EMA-filtered brightness updates during movement to detect low light conditions
-- **Movement abortion**: stops ongoing movement if brightness drops below threshold
-- **Configurable**: tolerance, timing, and filtering
-- **Logs**: state changes, sensor values, overshoot, aborted adjustments, and skipped adjustments
+- **Overshoot correction with reversal:** If movement overshoots, the tracker waits for a configurable dead time, then reverses direction to try and correct. This process repeats up to a configurable maximum number of tries (default 3), stopping if balance is achieved within threshold.
+- **Continuous brightness monitoring:** EMA-filtered brightness updates during movement to detect low light conditions
+- **Movement abortion:** stops ongoing movement if brightness drops below threshold
+- **Configurable:** tolerance, timing, filtering, reversal dead time, and max reversal tries
+- **Logs:** state changes, sensor values, overshoot, aborted adjustments, and skipped adjustments
 
 ---
 

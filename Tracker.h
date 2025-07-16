@@ -25,6 +25,8 @@ public:
   void setSamplingRate(unsigned long samplingRateMs);
   void setBrightnessThreshold(int32_t thresholdOhms);
   void setBrightnessFilterTimeConstant(float tauS);
+  void setReversalDeadTime(unsigned long ms);
+  void setMaxReversalTries(int tries);
 
   // Status
   State getState() const;
@@ -49,6 +51,14 @@ private:
   int32_t brightnessThresholdOhms;
   float brightnessFilterTimeConstantS;
   float filteredBrightness;
+
+  // Overshoot correction
+  unsigned long reversalDeadTimeMs; // ms to wait before reversing after overshoot
+  int maxReversalTries;             // max number of reversal attempts
+  int reversalTries;                // current reversal attempt count
+  unsigned long reversalWaitStartTime; // when dead time started
+  bool waitingForReversal;          // are we in dead time before reversal?
+  bool reversalDirection;           // direction to move after reversal (true=east, false=west)
 
   // Timing
   unsigned long lastAdjustmentTime;

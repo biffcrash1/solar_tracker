@@ -20,8 +20,15 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
   lastBrightnessSampleTime(0),
   initialEastValue(0.0f),
   initialWestValue(0.0f),
+  initialDiff(0.0f),
   movementDirectionSet(false),
-  movingEast(false)
+  movingEast(false),
+  reversalDeadTimeMs(1000),
+  maxReversalTries(3),
+  reversalTries(0),
+  reversalWaitStartTime(0),
+  waitingForReversal(false),
+  reversalDirection(false)
 {
 }
 
@@ -31,6 +38,10 @@ void Tracker::begin()
   lastAdjustmentTime = currentTime;
   lastSamplingTime = currentTime;
   state = IDLE;
+  reversalTries = 0;
+  waitingForReversal = false;
+  reversalWaitStartTime = 0;
+  reversalDirection = false;
 }
 
 void Tracker::update()
@@ -54,7 +65,7 @@ void Tracker::update()
     float avgBrightness = ( eastValue + westValue ) / 2.0f;
     float alpha = brightnessFilterTimeConstantS > 0 ? dt / brightnessFilterTimeConstantS : 1.0f;
     if( alpha > 1.0f ) alpha = 1.0f;
-    filteredBrightness += alpha * ( avgBrightness - filteredBrightness );
+    filteredBrightness += ( alpha * ( avgBrightness - filteredBrightness ));
     if( filteredBrightness < 0.0f ) filteredBrightness = 0.0f;
   }
   
@@ -91,6 +102,24 @@ void Tracker::update()
         motorControl->stop();
         state = IDLE;
         lastAdjustmentTime = currentTime;
+        reversalTries = 0;
+        waitingForReversal = false;
+      }
+      // Handle reversal dead time
+      else if( waitingForReversal )
+      {
+        if( currentTime - reversalWaitStartTime >= reversalDeadTimeMs )
+        {
+          // Reverse direction and try again
+          movingEast = !movingEast;
+          reversalDirection = movingEast;
+          movementDirectionSet = true;
+          waitingForReversal = false;
+          // Update initialDiff for new direction
+          float eastValue = eastSensor->getFilteredValue();
+          float westValue = westSensor->getFilteredValue();
+          initialDiff = ( eastValue - westValue );
+        }
       }
       // Check if it's time to sample sensors
       else if( currentTime - lastSamplingTime >= samplingRateMs )
@@ -98,9 +127,9 @@ void Tracker::update()
         lastSamplingTime = currentTime;
         float eastValue = eastSensor->getFilteredValue();
         float westValue = westSensor->getFilteredValue();
-        float lowerValue = ( eastValue < westValue ) ? eastValue : westValue;
+        float lowerValue = (( eastValue < westValue ) ? eastValue : westValue );
         float tolerance = ( lowerValue * tolerancePercent / 100.0f );
-        float currentDiff = eastValue - westValue;
+        float currentDiff = ( eastValue - westValue );
 
         // Stop movement if filtered brightness falls below threshold
         if( filteredBrightness >= brightnessThresholdOhms )
@@ -110,6 +139,8 @@ void Tracker::update()
           motorControl->stop();
           state = IDLE;
           lastAdjustmentTime = currentTime;
+          reversalTries = 0;
+          waitingForReversal = false;
         }
         // Check if sensors are balanced within tolerance
         else if( abs( eastValue - westValue ) <= tolerance )
@@ -117,6 +148,8 @@ void Tracker::update()
           motorControl->stop();
           state = IDLE;
           lastAdjustmentTime = currentTime;
+          reversalTries = 0;
+          waitingForReversal = false;
         }
         else
         {
@@ -124,25 +157,35 @@ void Tracker::update()
           if( !movementDirectionSet )
           {
             movingEast = ( eastValue < westValue );
+            reversalDirection = movingEast;
             movementDirectionSet = true;
           }
 
           // Check for overshoot
           bool overshootDetected = false;
-          if(( currentDiff * initialDiff < 0 ) && ( fabs( currentDiff ) > tolerance ))
+          if((( currentDiff * initialDiff ) < 0 ) && ( fabs( currentDiff ) > tolerance ))
           {
             overshootDetected = true;
           }
 
           if( overshootDetected )
           {
-            // Log overshoot detection
             extern Terminal terminal;
-            terminal.logOvershootDetected( movingEast, eastValue, westValue,
-                                           tolerance );
+            terminal.logOvershootDetected( movingEast, eastValue, westValue, tolerance );
             motorControl->stop();
-            state = IDLE;
-            lastAdjustmentTime = currentTime;
+            if( reversalTries + 1 < maxReversalTries )
+            {
+              reversalTries++;
+              waitingForReversal = true;
+              reversalWaitStartTime = currentTime;
+            }
+            else
+            {
+              state = IDLE;
+              lastAdjustmentTime = currentTime;
+              reversalTries = 0;
+              waitingForReversal = false;
+            }
           }
           else
           {
@@ -195,6 +238,16 @@ void Tracker::setBrightnessFilterTimeConstant( float tauS )
   brightnessFilterTimeConstantS = tauS;
 }
 
+void Tracker::setReversalDeadTime(unsigned long ms)
+{
+  reversalDeadTimeMs = ms;
+}
+
+void Tracker::setMaxReversalTries(int tries)
+{
+  maxReversalTries = tries;
+}
+
 Tracker::State Tracker::getState() const
 {
   return state;
@@ -213,5 +266,5 @@ unsigned long Tracker::getTimeUntilNextAdjustment() const
   {
     return 0;
   }
-  return adjustmentPeriodMs - timeSinceLastAdjustment;
+  return ( adjustmentPeriodMs - timeSinceLastAdjustment );
 }
