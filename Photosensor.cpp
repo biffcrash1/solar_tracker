@@ -11,6 +11,8 @@
 //     Description:
 //     - Initializes a PhotoSensor object with the specified pin
 //       and series resistor value.
+//     - Calculates EMA filter coefficient based on configurable
+//       time constant and sampling rate.
 //
 //***********************************************************
 PhotoSensor::PhotoSensor(uint8_t pin, uint32_t seriesResistor)
@@ -19,6 +21,16 @@ PhotoSensor::PhotoSensor(uint8_t pin, uint32_t seriesResistor)
   this->seriesResistor = seriesResistor;
   this->value = 0;
   this->lastUpdate = 0;
+  
+  // Initialize EMA filter
+  this->filteredValue = 0.0f;
+  this->filterInitialized = false;
+  
+  // Calculate EMA filter coefficient: alpha = dt / (tau + dt)
+  // where dt = sampling period, tau = time constant
+  float dt = PHOTOSENSOR_SAMPLING_RATE_MS / 1000.0f;  // Convert to seconds
+  float tau = PHOTOSENSOR_EMA_TIME_CONSTANT_MS / 1000.0f;  // Convert to seconds
+  this->alpha = dt / (tau + dt);
 }
 
 //***********************************************************
@@ -51,17 +63,17 @@ void PhotoSensor::begin()
 //     - None
 //
 //     Description:
-//     - Updates the photosensor reading every 100ms. Reads the
-//       analog value and converts it to resistance using the
-//       voltage divider formula.
+//     - Updates the photosensor reading at configurable sampling rate.
+//       Reads the analog value and converts it to resistance using the
+//       voltage divider formula. Applies EMA filter to smooth the readings.
 //
 //***********************************************************
 void PhotoSensor::update()
 {
   unsigned long now = millis();
-  if( now - lastUpdate >= 100 )
+  if( now - lastUpdate >= PHOTOSENSOR_SAMPLING_RATE_MS )
   {
-    lastUpdate += 100;
+    lastUpdate += PHOTOSENSOR_SAMPLING_RATE_MS;
     int reading = analogRead( pin );
     uint32_t resistance;
     if( reading >= 1023 )
@@ -79,6 +91,16 @@ void PhotoSensor::update()
         resistance = SENSOR_MAX_RESISTANCE_OHMS;
     }
     value = (int32_t)resistance;
+    
+    // Apply EMA filter
+    if (!filterInitialized) {
+      // Initialize filter with first reading
+      filteredValue = (float)value;
+      filterInitialized = true;
+    } else {
+      // Apply EMA filter: filtered = alpha * new + (1-alpha) * filtered_old
+      filteredValue = alpha * (float)value + (1.0f - alpha) * filteredValue;
+    }
   }
 }
 
@@ -99,4 +121,24 @@ void PhotoSensor::update()
 int32_t PhotoSensor::getValue() const
 {
   return value;
+}
+
+//***********************************************************
+//     Function Name: getFilteredValue
+//
+//     Inputs:
+//     - None
+//
+//     Returns:
+//     - float : Current filtered resistance value of the photosensor
+//
+//     Description:
+//     - Returns the current EMA-filtered resistance value of the
+//       photosensor in ohms. This provides smoother readings with
+//       reduced noise.
+//
+//***********************************************************
+float PhotoSensor::getFilteredValue() const
+{
+  return filteredValue;
 }

@@ -22,6 +22,8 @@ public:
     void logMotorStateChange(MotorControl::State oldState, MotorControl::State newState);
     void logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, Tracker* tracker, bool isBalanced);
     void logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t threshold);
+    void logOvershootDetected( bool movingEast, float eastValue, float westValue, 
+                               float tolerance );
 
 private:
     unsigned long printPeriodMs;

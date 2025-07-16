@@ -10,6 +10,11 @@ private:
   uint32_t seriesResistor;
   int32_t value;
   unsigned long lastUpdate;
+  
+  // EMA filter variables
+  float filteredValue;
+  float alpha;  // EMA filter coefficient
+  bool filterInitialized;
 
 public:
   // Constructor
@@ -21,6 +26,7 @@ public:
   // Update and data access
   void update();
   int32_t getValue() const;
+  float getFilteredValue() const;  // Get filtered value
   
   // Getters for external access
   uint8_t getPin() const { return pin; }

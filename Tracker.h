@@ -51,6 +51,12 @@ private:
     unsigned long lastSamplingTime;
     unsigned long movementStartTime;
     unsigned long lastBrightnessSampleTime;
+    
+    // Overshoot detection
+    float initialEastValue;
+    float initialWestValue;
+    bool movementDirectionSet;
+    bool movingEast;
 };
 
 #endif // TRACKER_H 

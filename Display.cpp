@@ -1,6 +1,16 @@
 #include "Display.h"
 #include <Wire.h>
 #include <stdio.h>
+#include <math.h>
+
+// Global variables for display update function
+static unsigned long lastUpdate = 0;
+static unsigned long startTime = 0;
+static unsigned long lastSampleTime = 0;
+static int nextSeconds = 300;
+static long sumWatts = 0;
+static int sampleCount = 0;
+static bool displayInitialized = false;
 
 //***********************************************************
 //     Function Name: DisplayModule_init
@@ -23,6 +33,14 @@ void DisplayModule_init( DisplayModule_t* module )
   module->display = &displayObj;
   module->display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
   module->display->clearDisplay();
+  
+  // Initialize display timing variables
+  if (!displayInitialized) {
+    startTime = millis() / 1000;
+    lastUpdate = startTime;
+    lastSampleTime = startTime;
+    displayInitialized = true;
+  }
 }
 
 //***********************************************************
@@ -146,4 +164,70 @@ void DisplayModule_drawData( DisplayModule_t* module, float volts, float amps, i
   module->display->setCursor( x, y1 );
   DisplayModule_secondsToMMSS( nextSeconds, buf );
   module->display->print( "N:" ); module->display->print( buf );
+}
+
+//***********************************************************
+//     Function Name: updateDisplay
+//
+//     Inputs:
+//     - displayModule : Pointer to DisplayModule_t struct
+//     - graph : Pointer to Graph_t struct
+//     - eastSensor : Pointer to east PhotoSensor
+//     - westSensor : Pointer to west PhotoSensor
+//
+//     Returns:
+//     - None
+//
+//     Description:
+//     - Updates the display with current sensor data, generates demo
+//       voltage/current data, calculates power, updates the graph,
+//       and refreshes the display every second.
+//
+//***********************************************************
+void updateDisplay( DisplayModule_t* displayModule, Graph_t* graph, PhotoSensor* eastSensor, PhotoSensor* westSensor )
+{
+  unsigned long currentMillis = millis();
+  unsigned long currentSecs = currentMillis / 1000;
+  if( currentSecs > lastUpdate )
+  {
+    lastUpdate = currentSecs;
+    unsigned long elapsed = currentSecs - startTime;
+
+    // Generate demo data
+    float volts = 12 + 2 * sin( 2 * PI * elapsed / 30.0 );
+    float amps = 10 + 3 * sin( 2 * PI * elapsed / 53.0 );
+
+    // Read photoresistor values (filtered)
+    int32_t east = (int32_t)eastSensor->getFilteredValue();
+    int32_t west = (int32_t)westSensor->getFilteredValue();
+
+    // Countdown timer
+    nextSeconds--;
+    if( nextSeconds < 0 )
+    {
+      nextSeconds = 300; // reset to 5:00
+    }
+
+    // Calculate watts
+    int watts = (int)round( volts * amps );
+
+    // Accumulate for sampling
+    sumWatts += watts;
+    sampleCount++;
+
+    // Sample and update graph every SAMPLE_INTERVAL_SECONDS
+    if(( currentSecs - lastSampleTime ) >= SAMPLE_INTERVAL_SECONDS )
+    {
+      int avg = (int)round((float)sumWatts / sampleCount );
+      Graph_addPoint( graph, avg );
+      lastSampleTime = currentSecs;
+      sumWatts = 0;
+      sampleCount = 0;
+    }
+
+    // Draw data and graph
+    DisplayModule_drawData( displayModule, volts, amps, east, west, nextSeconds, watts );
+    Graph_drawGraph( graph );
+    displayModule->display->display();
+  }
 }

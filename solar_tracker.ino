@@ -20,13 +20,6 @@ MotorControl motorControl;
 Tracker tracker(&eastSensor, &westSensor, &motorControl);
 Terminal terminal;
 
-unsigned long lastUpdate = 0;
-unsigned long startTime = 0;
-unsigned long lastSampleTime = 0;
-int nextSeconds = 300;
-long sumWatts = 0;
-int sampleCount = 0;
-
 //***********************************************************
 //     Function Name: setup
 //
@@ -53,10 +46,10 @@ void setup()
   tracker.begin();
   terminal.begin();
 
-  startTime = millis() / 1000;
-  lastUpdate = startTime;
-  lastSampleTime = startTime;
+
 }
+
+
 
 //***********************************************************
 //     Function Name: loop
@@ -88,48 +81,6 @@ void loop()
   // Update terminal logging
   terminal.update( &tracker, &motorControl, &eastSensor, &westSensor );
 
-  unsigned long currentMillis = millis();
-  unsigned long currentSecs = currentMillis / 1000;
-  if( currentSecs > lastUpdate )
-  {
-    lastUpdate = currentSecs;
-    unsigned long elapsed = currentSecs - startTime;
-
-    // Generate demo data
-    float volts = 12 + 2 * sin( 2 * PI * elapsed / 30.0 );
-    float amps = 10 + 3 * sin( 2 * PI * elapsed / 53.0 );
-
-    // Read photoresistor values
-    int32_t east = eastSensor.getValue();
-    int32_t west = westSensor.getValue();
-
-    // Countdown timer
-    nextSeconds--;
-    if( nextSeconds < 0 )
-    {
-      nextSeconds = 300; // reset to 5:00
-    }
-
-    // Calculate watts
-    int watts = (int)round( volts * amps );
-
-    // Accumulate for sampling
-    sumWatts += watts;
-    sampleCount++;
-
-    // Sample and update graph every SAMPLE_INTERVAL_SECONDS
-    if(( currentSecs - lastSampleTime ) >= SAMPLE_INTERVAL_SECONDS )
-    {
-      int avg = (int)round((float)sumWatts / sampleCount );
-      Graph_addPoint( &graph, avg );
-      lastSampleTime = currentSecs;
-      sumWatts = 0;
-      sampleCount = 0;
-    }
-
-    // Draw data and graph
-    DisplayModule_drawData( &displayModule, volts, amps, east, west, nextSeconds, watts );
-    Graph_drawGraph( &graph );
-    displayModule.display->display();
-  }
+  // Update display
+  updateDisplay( &displayModule, &graph, &eastSensor, &westSensor );
 }

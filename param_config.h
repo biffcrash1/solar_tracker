@@ -32,5 +32,7 @@
 
 // Sensor settings
 #define SENSOR_MAX_RESISTANCE_OHMS 350000  // 350K ohms maximum resistance
+#define PHOTOSENSOR_SAMPLING_RATE_MS 20    // 20ms sampling rate
+#define PHOTOSENSOR_EMA_TIME_CONSTANT_MS 200  // 200ms EMA filter time constant
 
 #endif // PARAM_CONFIG_H

@@ -3,6 +3,8 @@
 
 #include <Adafruit_SSD1306.h>
 #include "param_config.h"
+#include "Graph.h"
+#include "Photosensor.h"
 #include <stdint.h>
 
 typedef struct {
@@ -12,6 +14,9 @@ typedef struct {
 // Function declarations
 void DisplayModule_init( DisplayModule_t* module );
 void DisplayModule_drawData( DisplayModule_t* module, float volts, float amps, int32_t east, int32_t west, int nextSeconds, int watts );
+
+// Display update function
+void updateDisplay( DisplayModule_t* displayModule, Graph_t* graph, PhotoSensor* eastSensor, PhotoSensor* westSensor );
 
 // Helper functions
 void DisplayModule_secondsToMMSS( int secs, char* buf );

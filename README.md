@@ -39,8 +39,9 @@ This project uses modern C++ classes for Arduino development, providing clean ob
 
 ### 2. C++ Class Methods
 - `PhotoSensor::begin()` - Initialize the sensor
-- `PhotoSensor::update()` - Update sensor readings every 100ms with configurable resistance limit
-- `PhotoSensor::getValue()` - Get current resistance value (capped at configurable maximum)
+- `PhotoSensor::update()` - Update sensor readings at configurable rate with EMA filtering
+- `PhotoSensor::getValue()` - Get current unfiltered resistance value (capped at configurable maximum)
+- `PhotoSensor::getFilteredValue()` - Get current EMA-filtered resistance value
 - `PhotoSensor::getPin()` - Get the analog pin number
 - `PhotoSensor::getSeriesResistor()` - Get the series resistor value
 - `MotorControl::begin()` - Initialize motor control
@@ -69,6 +70,7 @@ This project uses modern C++ classes for Arduino development, providing clean ob
 - `Terminal::logMotorStateChange()` - Log motor state changes
 - `Terminal::logSensorData()` - Log sensor data
 - `Terminal::logAdjustmentSkippedLowBrightness()` - Log skipped adjustments
+- `Terminal::logOvershootDetected()` - Log overshoot detection events
 
 ### 3. C++ Constructors
 - `PhotoSensor(pin, resistor)` - Constructor with pin and series resistor
@@ -113,17 +115,12 @@ tracker.update();
 // Update terminal logging
 terminal.update(&tracker, &motorControl, &eastSensor, &westSensor);
 
-// Get sensor values
-int32_t east = eastSensor.getValue();
-int32_t west = westSensor.getValue();
+// Update display (now handled by dedicated function)
+updateDisplay(&displayModule, &graph, &eastSensor, &westSensor);
 
-// Add data to graph
-Graph_addPoint(&graph, watts);
-
-// Draw display
-DisplayModule_drawData(&displayModule, volts, amps, east, west, nextSeconds, watts);
-Graph_drawGraph(&graph);
-displayModule.display->display();
+// Get filtered sensor values
+int32_t east = (int32_t)eastSensor.getFilteredValue();
+int32_t west = (int32_t)westSensor.getFilteredValue();
 ```
 
 ## Tracker Module
@@ -134,9 +131,10 @@ The Tracker module implements an intelligent solar tracking system using a state
 - **Automatic Tracking**: Moves motors to align solar panel with the sun
 - **Configurable Tolerance**: Default 10% tolerance for sensor balance
 - **Maximum Movement Time**: Default 15 seconds to prevent over-rotation
-- **Adjustment Periods**: Default 5-minute intervals between adjustments
-- **Real-time Sampling**: 100ms sampling rate during movement
-- **Directional Movement**: Moves toward the brighter photoresistor
+- **Adjustment Periods**: Default 30-second intervals between adjustments
+- **Real-time Sampling**: Configurable sampling rate (default: 20ms) with EMA filtering (default: 200ms time constant)
+- **Directional Movement**: Moves toward the brighter photoresistor, stops if balanced or if overshoot is detected
+- **Overshoot Detection**: If the tracker overshoots the balance point (opposite sensor becomes brighter by at least the tolerance), movement stops and a log message is printed
 
 ### State Machine States
 - `TRACKER_STATE_IDLE`: Waiting for next adjustment period
@@ -176,12 +174,13 @@ The Terminal module provides comprehensive serial logging and monitoring of the 
 ### Features
 - **State Change Logging**: Logs all tracker and motor state changes with timestamps
 - **Motor Log**: Only prints the state being entered (not the state being exited)
-- **Sensor Data Monitoring**: Prints sensor values, differences, tolerance, EMA (filtered brightness, in ohms), and balance status
+- **Sensor Data Monitoring**: Prints filtered sensor values, differences, tolerance, EMA (filtered brightness, in ohms), and balance status
 - **Aligned Output**: All sensor log columns are 6 digits, right-justified for easy reading
 - **Balance Status**: Prints `BALANCED_WITHIN_TOLERANCE` when sensors are within tolerance
 - **Configurable Print Period**: Default 1-second intervals for regular sensor data (configurable, disabled by default)
 - **Event-Driven Logging**: Automatically logs when movement starts or balance is reached
 - **Timestamped Output**: All messages include formatted timestamps (MM:SS)
+- **Overshoot Logging**: Logs a message when tracker movement overshoots the balance point
 - **Unused Parameter Warnings Suppressed**: All unused parameters in logging functions are explicitly cast to void with comments for clarity and maintainability
 
 ### Log Output Examples
@@ -198,6 +197,7 @@ Solar Tracker Terminal Started
 [0:09] MOTOR:  STOPPED     
 [0:09] TRACKER: ADJUSTING -> IDLE      (Sensors balanced or timeout reached)
 [0:30] TRACKER: Adjustment skipped due to low brightness. Avg=  35000 Thresh=  30000 ohms
+[0:45] TRACKER: Overshoot detected while moving EAST. E=   380 W=   420 Tol=    38 ohms
 ```
 
 ### Configuration Functions
@@ -219,6 +219,7 @@ Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
 - **Balance Changes**: When sensors become balanced or unbalanced
 - **State Changes**: Every tracker and motor state change
 - **Adjustment Skipped**: When the filtered brightness (resistance) is above the threshold (i.e., not bright enough)
+- **Overshoot Detection**: When tracker movement overshoots the balance point
 
 ### Adjustment Logic
 - **Lower resistance means brighter.**
@@ -226,6 +227,7 @@ Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
 - The EMA filter time constant is configurable (default 10s).
 - **The tracker only adjusts if the filtered resistance is BELOW the threshold (default 30 kΩ).**
 - If the filtered resistance is above the threshold (i.e., not bright enough), the adjustment is skipped and a log message is printed.
+- **Overshoot Detection**: The tracker stops movement if the opposite sensor becomes brighter by at least the tolerance value, indicating the balance point has been passed.
 
 ## Configuration
 
@@ -234,6 +236,8 @@ Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
   - Prevents extremely high resistance values in low light conditions
   - Configurable in `param_config.h`
   - Applied to both sensors to maintain relative relationships
+- `PHOTOSENSOR_SAMPLING_RATE_MS` - Sampling rate for photosensors in milliseconds (default: 20ms)
+- `PHOTOSENSOR_EMA_TIME_CONSTANT_MS` - Time constant for EMA filter in milliseconds (default: 200ms)
 
 ### Tracker Settings
 - `TRACKER_TOLERANCE_PERCENT` - Tolerance percentage for sensor balance (default: 10.0%)
@@ -246,6 +250,16 @@ Tracker_setBrightnessThreshold(&tracker, 25000); // 25 kOhms
 ### Terminal Settings
 - `TERMINAL_PRINT_PERIOD_MS` - Print interval for sensor data (default: 1000ms)
 - `TERMINAL_ENABLE_PERIODIC_LOGS` - Enable periodic logging (default: true)
+
+## Code Style
+
+The codebase follows these formatting preferences:
+- No spaces between keywords/function names and opening parentheses (e.g., `if(condition)`, `function(arg)`)
+- Spaces inside parentheses around text/expressions (e.g., `( value + 1 )`)
+- No spaces between consecutive parentheses of the same direction, except for typecasting
+- Multi-line statements have vertically aligned parentheses at the same nested depth
+- Opening and closing braces are on separate lines
+- Comments are vertically aligned with the code they reference
 
 ## Hardware Requirements
 

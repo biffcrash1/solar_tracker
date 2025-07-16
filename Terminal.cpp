@@ -53,10 +53,10 @@ void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor*
     }
     // Check if sensors are balanced
     if (currentTrackerState == Tracker::ADJUSTING) {
-        int32_t eastValue = eastSensor->getValue();
-        int32_t westValue = westSensor->getValue();
-        int32_t lowerValue = (eastValue < westValue) ? eastValue : westValue;
-        int32_t tolerance = (int32_t)(lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f);
+        float eastValue = eastSensor->getFilteredValue();
+        float westValue = westSensor->getFilteredValue();
+        float lowerValue = (eastValue < westValue) ? eastValue : westValue;
+        float tolerance = (lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f);
         isBalanced = (abs(eastValue - westValue) <= tolerance);
         if (isBalanced != lastBalanced) {
             shouldPrint = true;
@@ -130,11 +130,11 @@ void Terminal::logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, T
     unsigned long seconds = currentTime / 1000;
     unsigned long minutes = seconds / 60;
     seconds %= 60;
-    int32_t eastValue = eastSensor->getValue();
-    int32_t westValue = westSensor->getValue();
-    int32_t difference = abs(eastValue - westValue);
-    int32_t lowerValue = (eastValue < westValue) ? eastValue : westValue;
-    int32_t tolerance = (int32_t)(lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f);
+    float eastValue = eastSensor->getFilteredValue();
+    float westValue = westSensor->getFilteredValue();
+    float difference = abs(eastValue - westValue);
+    float lowerValue = (eastValue < westValue) ? eastValue : westValue;
+    float tolerance = (lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f);
     Serial.print("[");
     Serial.print(minutes);
     Serial.print(":");
@@ -146,28 +146,28 @@ void Terminal::logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, T
     if (eastValue < 1000) Serial.print(" ");
     if (eastValue < 100) Serial.print(" ");
     if (eastValue < 10) Serial.print(" ");
-    Serial.print(eastValue);
+    Serial.print((int32_t)eastValue);
     Serial.print(" W=");
     if (westValue < 100000) Serial.print(" ");
     if (westValue < 10000) Serial.print(" ");
     if (westValue < 1000) Serial.print(" ");
     if (westValue < 100) Serial.print(" ");
     if (westValue < 10) Serial.print(" ");
-    Serial.print(westValue);
+    Serial.print((int32_t)westValue);
     Serial.print(" Diff=");
     if (difference < 100000) Serial.print(" ");
     if (difference < 10000) Serial.print(" ");
     if (difference < 1000) Serial.print(" ");
     if (difference < 100) Serial.print(" ");
     if (difference < 10) Serial.print(" ");
-    Serial.print(difference);
+    Serial.print((int32_t)difference);
     Serial.print(" Tol=");
     if (tolerance < 100000) Serial.print(" ");
     if (tolerance < 10000) Serial.print(" ");
     if (tolerance < 1000) Serial.print(" ");
     if (tolerance < 100) Serial.print(" ");
     if (tolerance < 10) Serial.print(" ");
-    Serial.print(tolerance);
+    Serial.print((int32_t)tolerance);
     Serial.print(" EMA=");
     int32_t ema = (int32_t)(tracker->getFilteredBrightness());
     if (ema < 100000) Serial.print(" ");
@@ -215,5 +215,42 @@ void Terminal::logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t 
     if (threshold < 100) Serial.print(" ");
     if (threshold < 10) Serial.print(" ");
     Serial.print(threshold);
+    Serial.println(" ohms");
+}
+
+void Terminal::logOvershootDetected( bool movingEast, float eastValue, float westValue, float tolerance )
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if (seconds < 10) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Overshoot detected while moving ");
+    Serial.print(movingEast ? "EAST" : "WEST");
+    Serial.print(". E=");
+    if (eastValue < 100000) Serial.print(" ");
+    if (eastValue < 10000) Serial.print(" ");
+    if (eastValue < 1000) Serial.print(" ");
+    if (eastValue < 100) Serial.print(" ");
+    if (eastValue < 10) Serial.print(" ");
+    Serial.print((int32_t)eastValue);
+    Serial.print(" W=");
+    if (westValue < 100000) Serial.print(" ");
+    if (westValue < 10000) Serial.print(" ");
+    if (westValue < 1000) Serial.print(" ");
+    if (westValue < 100) Serial.print(" ");
+    if (westValue < 10) Serial.print(" ");
+    Serial.print((int32_t)westValue);
+    Serial.print(" Tol=");
+    if (tolerance < 100000) Serial.print(" ");
+    if (tolerance < 10000) Serial.print(" ");
+    if (tolerance < 1000) Serial.print(" ");
+    if (tolerance < 100) Serial.print(" ");
+    if (tolerance < 10) Serial.print(" ");
+    Serial.print((int32_t)tolerance);
     Serial.println(" ohms");
 } 
