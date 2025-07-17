@@ -172,6 +172,14 @@ void Terminal::logMotorStateChange(MotorControl::State oldState, MotorControl::S
 
 void Terminal::printPaddedNumber( float value )
 {
+  // Show INF when value is ≥95% of max resistance
+  const int32_t INF_THRESHOLD = ( SENSOR_MAX_RESISTANCE_OHMS * 95 ) / 100;
+  if( value >= INF_THRESHOLD )
+  {
+    Serial.print("   INF");
+    return;
+  }
+
   if( value < 100000 ) Serial.print(" ");
   if( value < 10000 ) Serial.print(" ");
   if( value < 1000 ) Serial.print(" ");

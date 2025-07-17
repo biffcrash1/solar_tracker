@@ -2,12 +2,15 @@
 #include <Wire.h>
 #include <stdio.h>
 #include <math.h>
+#include "Tracker.h"
+
+// Reference to global tracker instance
+extern Tracker tracker;
 
 // Global variables for display update function
 static unsigned long lastUpdate = 0;
 static unsigned long startTime = 0;
 static unsigned long lastSampleTime = 0;
-static int nextSeconds = 300;
 static long sumWatts = 0;
 static int sampleCount = 0;
 static bool displayInitialized = false;
@@ -88,7 +91,9 @@ void DisplayModule_secondsToMMSS( int secs, char* buf )
 //  >999000: display "INF"
 void DisplayModule_formatValue( int32_t val, char* buf )
 {
-  if( val > 999000 )
+  // Show INF when value is ≥95% of max resistance
+  const int32_t INF_THRESHOLD = ( SENSOR_MAX_RESISTANCE_OHMS * 95 ) / 100;
+  if( val >= INF_THRESHOLD )
   {
     sprintf( buf, "INF" );
   }
@@ -201,12 +206,8 @@ void updateDisplay( DisplayModule_t* displayModule, Graph_t* graph, PhotoSensor*
     int32_t east = (int32_t)eastSensor->getFilteredValue();
     int32_t west = (int32_t)westSensor->getFilteredValue();
 
-    // Countdown timer
-    nextSeconds--;
-    if( nextSeconds < 0 )
-    {
-      nextSeconds = 300; // reset to 5:00
-    }
+    // Get actual time until next adjustment from tracker
+    int nextSeconds = (int)(tracker.getTimeUntilNextAdjustment() / 1000);
 
     // Calculate watts
     int watts = (int)round( volts * amps );

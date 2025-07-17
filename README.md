@@ -153,12 +153,48 @@ All configuration constants are in `param_config.h`:
   - Night/day detection time
 - **Comprehensive logging:**
   - State changes (including night mode transitions)
-  - Sensor values and brightness levels
+  - Sensor values and brightness levels (showing "INF" when ≥95% of max resistance)
   - Overshoot detection
   - Reversal progress
   - Aborted movements
   - Skipped adjustments
   - Day/night transitions
+
+---
+
+## Display Features
+
+### OLED Display Layout
+- **Top Row (Status):**
+  - Wt: Power in watts
+  - V: Voltage
+  - A: Current in amps
+- **Bottom Row (Sensors):**
+  - E: East photosensor value (ohms)
+  - W: West photosensor value (ohms)
+  - N: Next adjustment countdown (M:SS)
+
+### Real-time Adjustment Timer
+- Shows actual time remaining until next adjustment
+- Format: M:SS (minutes:seconds)
+- Synchronized with tracker's adjustment period
+- Updates in real-time based on:
+  * Regular adjustment intervals (default 5 minutes)
+  * Early adjustments from state changes
+  * Night mode transitions
+  * Low-light conditions
+
+### Value Formatting
+- Values ≤999: shown as integers
+- Values ≥1000: shown in kilo-units with 'k' suffix
+- Brightness values ≥95% of maximum resistance (350K ohms): shown as "INF"
+- Time always shown in M:SS format
+
+### Graph Display
+- Power history shown in bottom half of display
+- Auto-scaling to maximize visible detail
+- 5-minute history (configurable via `HISTORY_SECONDS`)
+- Sample interval of 2 seconds (configurable via `SAMPLE_INTERVAL_SECONDS`)
 
 ---
 
