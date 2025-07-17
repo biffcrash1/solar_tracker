@@ -42,6 +42,9 @@ private:
   Tracker::State lastTrackerState;
   MotorControl::State lastMotorState;
   bool lastBalanced;
+
+  // Helper functions
+  void printPaddedNumber( float value );
 };
 
 #endif // TERMINAL_H

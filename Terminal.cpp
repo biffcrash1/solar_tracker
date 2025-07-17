@@ -170,6 +170,16 @@ void Terminal::logMotorStateChange(MotorControl::State oldState, MotorControl::S
     Serial.println();
 }
 
+void Terminal::printPaddedNumber( float value )
+{
+  if( value < 100000 ) Serial.print(" ");
+  if( value < 10000 ) Serial.print(" ");
+  if( value < 1000 ) Serial.print(" ");
+  if( value < 100 ) Serial.print(" ");
+  if( value < 10 ) Serial.print(" ");
+  Serial.print((int32_t)value);
+}
+
 void Terminal::logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, Tracker* tracker, bool isBalanced)
 {
     unsigned long currentTime = millis();
@@ -187,41 +197,15 @@ void Terminal::logSensorData(PhotoSensor* eastSensor, PhotoSensor* westSensor, T
     if( seconds < 10 ) Serial.print("0");
     Serial.print(seconds);
     Serial.print("] SENSORS: E=");
-    if( eastValue < 100000 ) Serial.print(" ");
-    if( eastValue < 10000 ) Serial.print(" ");
-    if( eastValue < 1000 ) Serial.print(" ");
-    if( eastValue < 100 ) Serial.print(" ");
-    if( eastValue < 10 ) Serial.print(" ");
-    Serial.print((int32_t)eastValue);
+    printPaddedNumber(eastValue);
     Serial.print(" W=");
-    if( westValue < 100000 ) Serial.print(" ");
-    if( westValue < 10000 ) Serial.print(" ");
-    if( westValue < 1000 ) Serial.print(" ");
-    if( westValue < 100 ) Serial.print(" ");
-    if( westValue < 10 ) Serial.print(" ");
-    Serial.print((int32_t)westValue);
+    printPaddedNumber(westValue);
     Serial.print(" Diff=");
-    if( difference < 100000 ) Serial.print(" ");
-    if( difference < 10000 ) Serial.print(" ");
-    if( difference < 1000 ) Serial.print(" ");
-    if( difference < 100 ) Serial.print(" ");
-    if( difference < 10 ) Serial.print(" ");
-    Serial.print((int32_t)difference);
+    printPaddedNumber(difference);
     Serial.print(" Tol=");
-    if( tolerance < 100000 ) Serial.print(" ");
-    if( tolerance < 10000 ) Serial.print(" ");
-    if( tolerance < 1000 ) Serial.print(" ");
-    if( tolerance < 100 ) Serial.print(" ");
-    if( tolerance < 10 ) Serial.print(" ");
-    Serial.print((int32_t)tolerance);
+    printPaddedNumber(tolerance);
     Serial.print(" EMA=");
-    int32_t ema = (int32_t)(tracker->getFilteredBrightness());
-    if( ema < 100000 ) Serial.print(" ");
-    if( ema < 10000 ) Serial.print(" ");
-    if( ema < 1000 ) Serial.print(" ");
-    if( ema < 100 ) Serial.print(" ");
-    if( ema < 10 ) Serial.print(" ");
-    Serial.print(ema);
+    printPaddedNumber(tracker->getFilteredBrightness());
     Serial.print(" ");
     if( isBalanced )
     {
@@ -257,19 +241,9 @@ void Terminal::logAdjustmentSkippedLowBrightness(int32_t avgBrightness, int32_t 
     if( seconds < 10 ) Serial.print("0");
     Serial.print(seconds);
     Serial.print("] TRACKER: Adjustment skipped due to low brightness. Avg=");
-    if( avgBrightness < 100000 ) Serial.print(" ");
-    if( avgBrightness < 10000 ) Serial.print(" ");
-    if( avgBrightness < 1000 ) Serial.print(" ");
-    if( avgBrightness < 100 ) Serial.print(" ");
-    if( avgBrightness < 10 ) Serial.print(" ");
-    Serial.print(avgBrightness);
+    printPaddedNumber(avgBrightness);
     Serial.print(" Thresh=");
-    if( threshold < 100000 ) Serial.print(" ");
-    if( threshold < 10000 ) Serial.print(" ");
-    if( threshold < 1000 ) Serial.print(" ");
-    if( threshold < 100 ) Serial.print(" ");
-    if( threshold < 10 ) Serial.print(" ");
-    Serial.print(threshold);
+    printPaddedNumber(threshold);
     Serial.println(" ohms");
 }
 
@@ -285,19 +259,9 @@ void Terminal::logAdjustmentAbortedLowBrightness(int32_t avgBrightness, int32_t 
     if( seconds < 10 ) Serial.print("0");
     Serial.print(seconds);
     Serial.print("] TRACKER: Adjustment aborted due to low brightness. Avg=");
-    if( avgBrightness < 100000 ) Serial.print(" ");
-    if( avgBrightness < 10000 ) Serial.print(" ");
-    if( avgBrightness < 1000 ) Serial.print(" ");
-    if( avgBrightness < 100 ) Serial.print(" ");
-    if( avgBrightness < 10 ) Serial.print(" ");
-    Serial.print(avgBrightness);
+    printPaddedNumber(avgBrightness);
     Serial.print(" Thresh=");
-    if( threshold < 100000 ) Serial.print(" ");
-    if( threshold < 10000 ) Serial.print(" ");
-    if( threshold < 1000 ) Serial.print(" ");
-    if( threshold < 100 ) Serial.print(" ");
-    if( threshold < 10 ) Serial.print(" ");
-    Serial.print(threshold);
+    printPaddedNumber(threshold);
     Serial.println(" ohms");
 }
 
@@ -315,72 +279,37 @@ void Terminal::logOvershootDetected( bool movingEast, float eastValue, float wes
     Serial.print("] TRACKER: Overshoot detected while moving ");
     Serial.print(movingEast ? "EAST" : "WEST");
     Serial.print(". E=");
-    if( eastValue < 100000 ) Serial.print(" ");
-    if( eastValue < 10000 ) Serial.print(" ");
-    if( eastValue < 1000 ) Serial.print(" ");
-    if( eastValue < 100 ) Serial.print(" ");
-    if( eastValue < 10 ) Serial.print(" ");
-    Serial.print((int32_t)eastValue);
+    printPaddedNumber(eastValue);
     Serial.print(" W=");
-    if( westValue < 100000 ) Serial.print(" ");
-    if( westValue < 10000 ) Serial.print(" ");
-    if( westValue < 1000 ) Serial.print(" ");
-    if( westValue < 100 ) Serial.print(" ");
-    if( westValue < 10 ) Serial.print(" ");
-    Serial.print((int32_t)westValue);
+    printPaddedNumber(westValue);
     Serial.print(" Tol=");
-    if( tolerance < 100000 ) Serial.print(" ");
-    if( tolerance < 10000 ) Serial.print(" ");
-    if( tolerance < 1000 ) Serial.print(" ");
-    if( tolerance < 100 ) Serial.print(" ");
-    if( tolerance < 10 ) Serial.print(" ");
-    Serial.print((int32_t)tolerance);
+    printPaddedNumber(tolerance);
     Serial.println(" ohms");
 }
 
 void Terminal::logReversalAbortedNoProgress( bool movingEast, float eastValue, float westValue,
                                            float tolerance, float initialDiff )
 {
-  unsigned long currentTime = millis();
-  unsigned long seconds = currentTime / 1000;
-  unsigned long minutes = seconds / 60;
-  seconds %= 60;
-  Serial.print("[");
-  Serial.print(minutes);
-  Serial.print(":");
-  if( seconds < 10 ) Serial.print("0");
-  Serial.print(seconds);
-  Serial.print("] TRACKER: Reversal aborted - no progress while moving ");
-  Serial.print(movingEast ? "EAST" : "WEST");
-  Serial.print(". E=");
-  if( eastValue < 100000 ) Serial.print(" ");
-  if( eastValue < 10000 ) Serial.print(" ");
-  if( eastValue < 1000 ) Serial.print(" ");
-  if( eastValue < 100 ) Serial.print(" ");
-  if( eastValue < 10 ) Serial.print(" ");
-  Serial.print((int32_t)eastValue);
-  Serial.print(" W=");
-  if( westValue < 100000 ) Serial.print(" ");
-  if( westValue < 10000 ) Serial.print(" ");
-  if( westValue < 1000 ) Serial.print(" ");
-  if( westValue < 100 ) Serial.print(" ");
-  if( westValue < 10 ) Serial.print(" ");
-  Serial.print((int32_t)westValue);
-  Serial.print(" Tol=");
-  if( tolerance < 100000 ) Serial.print(" ");
-  if( tolerance < 10000 ) Serial.print(" ");
-  if( tolerance < 1000 ) Serial.print(" ");
-  if( tolerance < 100 ) Serial.print(" ");
-  if( tolerance < 10 ) Serial.print(" ");
-  Serial.print((int32_t)tolerance);
-  Serial.print(" InitDiff=");
-  if( initialDiff < 100000 ) Serial.print(" ");
-  if( initialDiff < 10000 ) Serial.print(" ");
-  if( initialDiff < 1000 ) Serial.print(" ");
-  if( initialDiff < 100 ) Serial.print(" ");
-  if( initialDiff < 10 ) Serial.print(" ");
-  Serial.print((int32_t)initialDiff);
-  Serial.println(" ohms");
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Reversal aborted - no progress while moving ");
+    Serial.print(movingEast ? "EAST" : "WEST");
+    Serial.print(". E=");
+    printPaddedNumber(eastValue);
+    Serial.print(" W=");
+    printPaddedNumber(westValue);
+    Serial.print(" Tol=");
+    printPaddedNumber(tolerance);
+    Serial.print(" InitDiff=");
+    printPaddedNumber(initialDiff);
+    Serial.println(" ohms");
 }
 
 void Terminal::logNightModeEntered( int32_t avgBrightness, int32_t threshold )
@@ -395,19 +324,9 @@ void Terminal::logNightModeEntered( int32_t avgBrightness, int32_t threshold )
     if( seconds < 10 ) Serial.print("0");
     Serial.print(seconds);
     Serial.print("] TRACKER: Night mode entered. Avg brightness=");
-    if( avgBrightness < 100000 ) Serial.print(" ");
-    if( avgBrightness < 10000 ) Serial.print(" ");
-    if( avgBrightness < 1000 ) Serial.print(" ");
-    if( avgBrightness < 100 ) Serial.print(" ");
-    if( avgBrightness < 10 ) Serial.print(" ");
-    Serial.print(avgBrightness);
+    printPaddedNumber(avgBrightness);
     Serial.print(" ohms exceeded threshold=");
-    if( threshold < 100000 ) Serial.print(" ");
-    if( threshold < 10000 ) Serial.print(" ");
-    if( threshold < 1000 ) Serial.print(" ");
-    if( threshold < 100 ) Serial.print(" ");
-    if( threshold < 10 ) Serial.print(" ");
-    Serial.print(threshold);
+    printPaddedNumber(threshold);
     Serial.println(" ohms");
 }
 
@@ -423,19 +342,9 @@ void Terminal::logDayModeEntered( int32_t avgBrightness, int32_t threshold )
     if( seconds < 10 ) Serial.print("0");
     Serial.print(seconds);
     Serial.print("] TRACKER: Day mode entered. Avg brightness=");
-    if( avgBrightness < 100000 ) Serial.print(" ");
-    if( avgBrightness < 10000 ) Serial.print(" ");
-    if( avgBrightness < 1000 ) Serial.print(" ");
-    if( avgBrightness < 100 ) Serial.print(" ");
-    if( avgBrightness < 10 ) Serial.print(" ");
-    Serial.print(avgBrightness);
+    printPaddedNumber(avgBrightness);
     Serial.print(" ohms fell below threshold=");
-    if( threshold < 100000 ) Serial.print(" ");
-    if( threshold < 10000 ) Serial.print(" ");
-    if( threshold < 1000 ) Serial.print(" ");
-    if( threshold < 100 ) Serial.print(" ");
-    if( threshold < 10 ) Serial.print(" ");
-    Serial.print(threshold);
+    printPaddedNumber(threshold);
     Serial.println(" ohms");
 }
 
@@ -453,19 +362,9 @@ void Terminal::logDefaultWestMovementStarted( int32_t avgBrightness, int32_t thr
     Serial.print("] TRACKER: Starting default west movement for ");
     Serial.print(duration);
     Serial.print("ms. Avg=");
-    if( avgBrightness < 100000 ) Serial.print(" ");
-    if( avgBrightness < 10000 ) Serial.print(" ");
-    if( avgBrightness < 1000 ) Serial.print(" ");
-    if( avgBrightness < 100 ) Serial.print(" ");
-    if( avgBrightness < 10 ) Serial.print(" ");
-    Serial.print(avgBrightness);
+    printPaddedNumber(avgBrightness);
     Serial.print(" Thresh=");
-    if( threshold < 100000 ) Serial.print(" ");
-    if( threshold < 10000 ) Serial.print(" ");
-    if( threshold < 1000 ) Serial.print(" ");
-    if( threshold < 100 ) Serial.print(" ");
-    if( threshold < 10 ) Serial.print(" ");
-    Serial.print(threshold);
+    printPaddedNumber(threshold);
     Serial.println(" ohms");
 }
 
