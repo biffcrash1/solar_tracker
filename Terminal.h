@@ -16,6 +16,8 @@ public:
   // Configuration
   void setPrintPeriod( unsigned long printPeriodMs );
   void setPeriodicLogs( bool enable );
+  void setLogOnlyWhileMoving( bool enable );
+  void setMovingPrintPeriod( unsigned long printPeriodMs );
 
   // Logging
   void logTrackerStateChange( Tracker::State oldState, Tracker::State newState, const char* reason );
@@ -35,8 +37,10 @@ public:
 
 private:
   unsigned long printPeriodMs;
+  unsigned long movingPrintPeriodMs;
   unsigned long lastPrintTime;
   bool enablePeriodicLogs;
+  bool logOnlyWhileMoving;
 
   // State tracking for change detection
   Tracker::State lastTrackerState;

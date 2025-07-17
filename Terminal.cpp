@@ -2,8 +2,10 @@
 
 Terminal::Terminal()
     : printPeriodMs(TERMINAL_PRINT_PERIOD_MS),
+      movingPrintPeriodMs(TERMINAL_MOVING_PRINT_PERIOD_MS),
       lastPrintTime(0),
       enablePeriodicLogs(TERMINAL_ENABLE_PERIODIC_LOGS),
+      logOnlyWhileMoving(TERMINAL_LOG_ONLY_WHILE_MOVING),
       lastTrackerState(Tracker::IDLE),
       lastMotorState(MotorControl::STOPPED),
       lastBalanced(false)
@@ -72,29 +74,46 @@ void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor*
     // Check if it's time to print sensor data
     bool shouldPrint = false;
     bool isBalanced = false;
-    if( enablePeriodicLogs && currentTime - lastPrintTime >= printPeriodMs )
+
+    // Only proceed with sensor logging if periodic logs are enabled
+    if( enablePeriodicLogs )
     {
-        shouldPrint = true;
-        lastPrintTime = currentTime;
-    }
-    else if( currentTrackerState == Tracker::ADJUSTING && lastTrackerState != Tracker::ADJUSTING )
-    {
-        shouldPrint = true;
-    }
-    // Check if sensors are balanced
-    if( currentTrackerState == Tracker::ADJUSTING )
-    {
-        float eastValue = eastSensor->getFilteredValue();
-        float westValue = westSensor->getFilteredValue();
-        float lowerValue = ( eastValue < westValue ) ? eastValue : westValue;
-        float tolerance = ( lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f );
-        isBalanced = ( abs( eastValue - westValue ) <= tolerance );
-        if( isBalanced != lastBalanced )
+        bool isMoving = ( currentMotorState == MotorControl::MOVING_EAST ||
+                         currentMotorState == MotorControl::MOVING_WEST );
+        unsigned long printInterval = isMoving ? movingPrintPeriodMs : printPeriodMs;
+
+        // Check if we should print based on timing and movement state
+        if( !logOnlyWhileMoving || isMoving )
+        {
+            if( currentTime - lastPrintTime >= printInterval )
+            {
+                shouldPrint = true;
+                lastPrintTime = currentTime;
+            }
+        }
+
+        // Always print when starting adjustment
+        if( currentTrackerState == Tracker::ADJUSTING && lastTrackerState != Tracker::ADJUSTING )
         {
             shouldPrint = true;
-            lastBalanced = isBalanced;
+        }
+
+        // Check if sensors are balanced
+        if( currentTrackerState == Tracker::ADJUSTING )
+        {
+            float eastValue = eastSensor->getFilteredValue();
+            float westValue = westSensor->getFilteredValue();
+            float lowerValue = ( eastValue < westValue ) ? eastValue : westValue;
+            float tolerance = ( lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f );
+            isBalanced = ( abs( eastValue - westValue ) <= tolerance );
+            if( isBalanced != lastBalanced )
+            {
+                shouldPrint = true;
+                lastBalanced = isBalanced;
+            }
         }
     }
+
     if( shouldPrint )
     {
         logSensorData(eastSensor, westSensor, tracker, isBalanced);
@@ -109,6 +128,16 @@ void Terminal::setPrintPeriod(unsigned long printPeriodMs)
 void Terminal::setPeriodicLogs(bool enable)
 {
     enablePeriodicLogs = enable;
+}
+
+void Terminal::setLogOnlyWhileMoving(bool enable)
+{
+    logOnlyWhileMoving = enable;
+}
+
+void Terminal::setMovingPrintPeriod(unsigned long printPeriodMs)
+{
+    movingPrintPeriodMs = printPeriodMs;
 }
 
 void Terminal::logTrackerStateChange(Tracker::State oldState, Tracker::State newState, const char* reason)

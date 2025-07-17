@@ -36,6 +36,8 @@
 // Terminal settings
 #define TERMINAL_PRINT_PERIOD_MS 1000  // 1 second
 #define TERMINAL_ENABLE_PERIODIC_LOGS true  // Disable periodic logs by default
+#define TERMINAL_LOG_ONLY_WHILE_MOVING true  // Only log sensor data while motor is moving
+#define TERMINAL_MOVING_PRINT_PERIOD_MS 200  // 200ms print period while moving
 
 // Sensor settings
 #define SENSOR_MAX_RESISTANCE_OHMS 350000  // 350K ohms maximum resistance

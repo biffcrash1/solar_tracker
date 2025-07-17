@@ -38,6 +38,16 @@ A modular, object-oriented solar tracker for Arduino, using modern C++ classes a
 
 ### Terminal
 - Serial logging of system state, sensor values, and events.
+- Configurable logging behavior:
+  * Option to log sensor data only while motor is moving
+  * Different logging rates for moving vs stationary states
+  * Configurable periodic logging enable/disable
+- Comprehensive event logging:
+  * State changes
+  * Motor movements
+  * Sensor values
+  * Balance detection
+  * Night mode transitions
 
 ### Display/Graph (Legacy C-style)
 - OLED display and graphing support.
@@ -93,7 +103,11 @@ void loop() {
 All configuration constants are in `param_config.h`:
 - **Sensor:** max resistance, sampling rate, EMA time constant
 - **Tracker:** tolerance, max movement time, adjustment period, brightness threshold, filter time constant
-- **Terminal:** print period, enable/disable periodic logs
+- **Terminal:**
+  * Print period for stationary state (`TERMINAL_PRINT_PERIOD_MS`)
+  * Print period while moving (`TERMINAL_MOVING_PRINT_PERIOD_MS`)
+  * Enable/disable periodic logs (`TERMINAL_ENABLE_PERIODIC_LOGS`)
+  * Log only while moving option (`TERMINAL_LOG_ONLY_WHILE_MOVING`)
 
 ---
 
