@@ -21,11 +21,17 @@
 // Tracker settings
 #define TRACKER_TOLERANCE_PERCENT 10.0f
 #define TRACKER_MAX_MOVEMENT_TIME_SECONDS 15
-#define TRACKER_ADJUSTMENT_PERIOD_SECONDS 30  // 30 sec
+#define TRACKER_ADJUSTMENT_PERIOD_SECONDS 300  // 300 sec (5 min)
 #define TRACKER_SAMPLING_RATE_MS 100
 #define TRACKER_BRIGHTNESS_THRESHOLD_OHMS 30000  // 30 kOhms
 #define TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S 10  // 10 seconds
 #define TRACKER_REVERSAL_TIME_LIMIT_MS 1000  // 1 second default reversal time limit
+
+// Default west movement settings
+#define TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT true  // Disabled by default
+#define TRACKER_DEFAULT_WEST_MOVEMENT_MS 500  // 500ms default west movement time
+#define TRACKER_USE_AVERAGE_MOVEMENT_TIME true  // Use average of past successful movements
+#define TRACKER_MOVEMENT_HISTORY_SIZE 3  // Number of past movements to track
 
 // Terminal settings
 #define TERMINAL_PRINT_PERIOD_MS 1000  // 1 second

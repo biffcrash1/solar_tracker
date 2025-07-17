@@ -103,6 +103,7 @@ All configuration constants are in `param_config.h`:
   - IDLE: Default state, waiting for next adjustment period
   - ADJUSTING: Actively moving panel to balance sensors
   - NIGHT_MODE: Panel moved to east position during low light conditions
+  - DEFAULT_WEST_MOVEMENT: Executing predictive west movement during low light
 - **Night Mode Operation:**
   - Automatic day/night detection using configurable threshold
   - Hysteresis to prevent oscillation at threshold boundaries
@@ -118,8 +119,29 @@ All configuration constants are in `param_config.h`:
     * Prevents wasteful oscillation when correction isn't helping
   - Maximum number of reversal attempts is configurable (default 3)
   - Detailed logging of correction attempts and outcomes
+- **Default west movement:**
+  - Dedicated state for predictive movement during low-light conditions
+  - When enabled, moves panel west for a configurable duration instead of skipping adjustment
+  - Useful for predictive tracking when light levels are too low for sensor-based adjustment
+  - Configurable via `TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT` and `TRACKER_DEFAULT_WEST_MOVEMENT_MS`
+  - Adaptive movement duration based on history of successful adjustments:
+    * Tracks duration of past successful movements (configurable history size, default 3)
+    * Option to use average of past movement durations for default west movement
+    * Helps optimize movement time based on actual panel behavior
+    * Configurable via `TRACKER_USE_AVERAGE_MOVEMENT_TIME` and `TRACKER_MOVEMENT_HISTORY_SIZE`
+  - Completes full movement duration regardless of light conditions
+  - Returns to IDLE state after completion
+  - Detailed logging of movement start and completion
+- **Adjustment Timing:**
+  - Regular adjustment checks at configurable intervals (`TRACKER_ADJUSTMENT_PERIOD_SECONDS`)
+  - Timing starts from when each adjustment or movement begins:
+    * Normal sensor-based adjustments
+    * Default west movements
+    * Skipped adjustments due to low light
+  - Consistent timing ensures predictable behavior throughout the day
+  - Detailed logging includes duration of successful adjustments
 - **Continuous brightness monitoring:** EMA-filtered brightness updates during movement to detect low light conditions
-- **Movement abortion:** stops ongoing movement if brightness drops below threshold
+- **Movement abortion:** stops ongoing movement if brightness drops below threshold (except during default west movement)
 - **Configurable parameters:**
   - Sensor tolerance percentage
   - Movement timing (max time, adjustment period)

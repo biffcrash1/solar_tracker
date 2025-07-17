@@ -12,7 +12,8 @@ public:
   {
     IDLE,
     ADJUSTING,
-    NIGHT_MODE
+    NIGHT_MODE,
+    DEFAULT_WEST_MOVEMENT
   };
 
   Tracker( PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl* motorControl );
@@ -32,6 +33,10 @@ public:
   void setNightThreshold( int32_t thresholdOhms );
   void setNightHysteresis( float hysteresisPercent );
   void setNightDetectionTime( unsigned long detectionTimeSeconds );
+  void setDefaultWestMovementEnabled( bool enabled );
+  void setDefaultWestMovementTime( unsigned long ms );
+  void setUseAverageMovementTime( bool enabled );
+  void setMovementHistorySize( uint8_t size );
 
   // Status
   State getState() const;
@@ -40,11 +45,16 @@ public:
   {
     return state == NIGHT_MODE;
   }
+  bool isDefaultWestMovement() const
+  {
+    return state == DEFAULT_WEST_MOVEMENT;
+  }
   unsigned long getTimeUntilNextAdjustment() const;
   float getFilteredBrightness() const 
   {
     return filteredBrightness;
   }
+  unsigned long getAverageMovementTime() const;
 
 private:
   State state;
@@ -80,6 +90,16 @@ private:
   bool waitingForReversal;          // are we in dead time before reversal?
   bool reversalDirection;           // direction to move after reversal (true=east, false=west)
 
+  // Default west movement configuration
+  bool defaultWestMovementEnabled;  // Whether to move west when brightness is low
+  unsigned long defaultWestMovementMs;  // How long to move west for
+  unsigned long defaultWestMovementStartTime;  // When the default west movement started
+  bool useAverageMovementTime;      // Whether to use average movement time for default west movement
+  uint8_t movementHistorySize;      // Number of past movements to track
+  unsigned long* movementHistory;    // Circular buffer of past movement durations
+  uint8_t movementHistoryIndex;     // Current index in circular buffer
+  uint8_t movementHistoryCount;     // Number of movements recorded
+
   // Timing
   unsigned long lastAdjustmentTime;
   unsigned long lastSamplingTime;
@@ -92,6 +112,11 @@ private:
   float initialDiff;
   bool movementDirectionSet;
   bool movingEast;
+
+  // Helper methods
+  void recordSuccessfulMovement( unsigned long duration );
+  void initializeMovementHistory();
+  void cleanupMovementHistory();
 };
 
 #endif // TRACKER_H

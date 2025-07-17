@@ -29,6 +29,14 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     reversalStartTime(0),
     waitingForReversal(false),
     reversalDirection(false),
+    defaultWestMovementEnabled(TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT),
+    defaultWestMovementMs(TRACKER_DEFAULT_WEST_MOVEMENT_MS),
+    defaultWestMovementStartTime(0),
+    useAverageMovementTime(TRACKER_USE_AVERAGE_MOVEMENT_TIME),
+    movementHistorySize(TRACKER_MOVEMENT_HISTORY_SIZE),
+    movementHistory(nullptr),
+    movementHistoryIndex(0),
+    movementHistoryCount(0),
     lastAdjustmentTime(0),
     lastSamplingTime(0),
     movementStartTime(0),
@@ -39,6 +47,7 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     movementDirectionSet(false),
     movingEast(false)
 {
+  initializeMovementHistory();
 }
 
 void Tracker::begin()
@@ -55,6 +64,72 @@ void Tracker::begin()
   dayConditionMet = false;
   nightModeStartTime = 0;
   dayModeStartTime = 0;
+  movementHistoryIndex = 0;
+  movementHistoryCount = 0;
+}
+
+void Tracker::initializeMovementHistory()
+{
+  cleanupMovementHistory();
+  if( movementHistorySize > 0 )
+  {
+    movementHistory = new unsigned long[movementHistorySize];
+    for( uint8_t i = 0; i < movementHistorySize; i++ )
+    {
+      movementHistory[i] = defaultWestMovementMs;  // Initialize with default time
+    }
+  }
+}
+
+void Tracker::cleanupMovementHistory()
+{
+  if( movementHistory != nullptr )
+  {
+    delete[] movementHistory;
+    movementHistory = nullptr;
+  }
+}
+
+void Tracker::recordSuccessfulMovement( unsigned long duration )
+{
+  if( movementHistory != nullptr && movementHistorySize > 0 )
+  {
+    movementHistory[movementHistoryIndex] = duration;
+    movementHistoryIndex = ( movementHistoryIndex + 1 ) % movementHistorySize;
+    if( movementHistoryCount < movementHistorySize )
+    {
+      movementHistoryCount++;
+    }
+  }
+}
+
+unsigned long Tracker::getAverageMovementTime() const
+{
+  if( movementHistory == nullptr || movementHistoryCount == 0 )
+  {
+    return defaultWestMovementMs;
+  }
+
+  unsigned long sum = 0;
+  for( uint8_t i = 0; i < movementHistoryCount; i++ )
+  {
+    sum += movementHistory[i];
+  }
+  return sum / movementHistoryCount;
+}
+
+void Tracker::setUseAverageMovementTime( bool enabled )
+{
+  useAverageMovementTime = enabled;
+}
+
+void Tracker::setMovementHistorySize( uint8_t size )
+{
+  if( size != movementHistorySize )
+  {
+    movementHistorySize = size;
+    initializeMovementHistory();
+  }
 }
 
 void Tracker::update()
@@ -117,20 +192,55 @@ void Tracker::update()
         if( filteredBrightness >= brightnessThresholdOhms )
         {
           extern Terminal terminal;
-          terminal.logAdjustmentSkippedLowBrightness( (int32_t)filteredBrightness,
-                                                      brightnessThresholdOhms );
-          lastAdjustmentTime = currentTime;
+          if( defaultWestMovementEnabled )
+          {
+            // Calculate movement duration
+            unsigned long movementDuration = useAverageMovementTime ? 
+                                           getAverageMovementTime() : 
+                                           defaultWestMovementMs;
+            // Start default west movement
+            terminal.logDefaultWestMovementStarted( (int32_t)filteredBrightness,
+                                                  brightnessThresholdOhms,
+                                                  movementDuration );
+            motorControl->moveWest();
+            defaultWestMovementStartTime = currentTime;
+            lastAdjustmentTime = currentTime;  // Start timing from when movement begins
+            state = DEFAULT_WEST_MOVEMENT;
+          }
+          else
+          {
+            terminal.logAdjustmentSkippedLowBrightness( (int32_t)filteredBrightness,
+                                                       brightnessThresholdOhms );
+            lastAdjustmentTime = currentTime;  // Start timing from when adjustment was skipped
+          }
         }
         else
         {
           state = ADJUSTING;
           lastSamplingTime = currentTime;
           movementStartTime = currentTime;
+          lastAdjustmentTime = currentTime;  // Start timing from when adjustment begins
           // Store initial sensor values for overshoot detection
           initialEastValue = eastSensor->getFilteredValue();
           initialWestValue = westSensor->getFilteredValue();
           initialDiff = initialEastValue - initialWestValue;
           movementDirectionSet = false;
+        }
+      }
+      break;
+
+    case DEFAULT_WEST_MOVEMENT:
+      {
+        unsigned long movementDuration = useAverageMovementTime ? 
+                                       getAverageMovementTime() : 
+                                       defaultWestMovementMs;
+        if( currentTime - defaultWestMovementStartTime >= movementDuration )
+        {
+          motorControl->stop();
+          defaultWestMovementStartTime = 0;
+          extern Terminal terminal;
+          terminal.logDefaultWestMovementCompleted();
+          state = IDLE;
         }
       }
       break;
@@ -151,7 +261,8 @@ void Tracker::update()
           terminal.logDayModeEntered( (int32_t)filteredBrightness, (int32_t)dayThreshold );
           state = IDLE;
           motorControl->stop();
-          lastAdjustmentTime = currentTime;  // Reset adjustment timer
+          // Reset adjustment timer to start fresh when entering day mode
+          lastAdjustmentTime = currentTime;
           nightConditionMet = false;
           nightModeStartTime = 0;
           break;
@@ -172,7 +283,6 @@ void Tracker::update()
       {
         motorControl->stop();
         state = IDLE;
-        lastAdjustmentTime = currentTime;
         reversalTries = 0;
         waitingForReversal = false;
       }
@@ -213,7 +323,6 @@ void Tracker::update()
           extern Terminal terminal;
           terminal.logReversalAbortedNoProgress( movingEast, eastValue, westValue, tolerance, initialDiff );
           state = IDLE;
-          lastAdjustmentTime = currentTime;
           reversalTries = 0;
           waitingForReversal = false;
         }
@@ -227,7 +336,6 @@ void Tracker::update()
         else
         {
           state = IDLE;
-          lastAdjustmentTime = currentTime;
           reversalTries = 0;
           waitingForReversal = false;
         }
@@ -249,7 +357,6 @@ void Tracker::update()
           terminal.logAdjustmentAbortedLowBrightness( (int32_t)filteredBrightness, brightnessThresholdOhms );
           motorControl->stop();
           state = IDLE;
-          lastAdjustmentTime = currentTime;
           reversalTries = 0;
           waitingForReversal = false;
         }
@@ -257,8 +364,12 @@ void Tracker::update()
         else if( abs( eastValue - westValue ) <= tolerance )
         {
           motorControl->stop();
+          // Record successful movement duration
+          unsigned long movementDuration = currentTime - movementStartTime;
+          recordSuccessfulMovement( movementDuration );
+          extern Terminal terminal;
+          terminal.logSuccessfulMovement( movementDuration, movingEast );
           state = IDLE;
-          lastAdjustmentTime = currentTime;
           reversalTries = 0;
           waitingForReversal = false;
         }
@@ -293,7 +404,6 @@ void Tracker::update()
             else
             {
               state = IDLE;
-              lastAdjustmentTime = currentTime;
               reversalTries = 0;
               waitingForReversal = false;
             }
@@ -386,6 +496,16 @@ void Tracker::setMaxReversalTries(int tries)
 void Tracker::setReversalTimeLimit(unsigned long ms)
 {
   reversalTimeLimitMs = ms;
+}
+
+void Tracker::setDefaultWestMovementEnabled(bool enabled)
+{
+  defaultWestMovementEnabled = enabled;
+}
+
+void Tracker::setDefaultWestMovementTime(unsigned long ms)
+{
+  defaultWestMovementMs = ms;
 }
 
 Tracker::State Tracker::getState() const

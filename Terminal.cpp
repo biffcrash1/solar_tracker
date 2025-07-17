@@ -37,6 +37,10 @@ void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor*
                 {
                     reason = "Day mode entered";
                 }
+                else if( lastTrackerState == Tracker::DEFAULT_WEST_MOVEMENT )
+                {
+                    reason = "Default movement completed";
+                }
                 break;
             case Tracker::ADJUSTING:
                 if( lastTrackerState == Tracker::IDLE )
@@ -50,6 +54,9 @@ void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor*
                 break;
             case Tracker::NIGHT_MODE:
                 reason = "Night mode entered";
+                break;
+            case Tracker::DEFAULT_WEST_MOVEMENT:
+                reason = "Low light, using default movement";
                 break;
         }
         logTrackerStateChange(lastTrackerState, currentTrackerState, reason);
@@ -121,6 +128,7 @@ void Terminal::logTrackerStateChange(Tracker::State oldState, Tracker::State new
         case Tracker::IDLE: Serial.print("IDLE       "); break;
         case Tracker::ADJUSTING: Serial.print("ADJUSTING  "); break;
         case Tracker::NIGHT_MODE: Serial.print("NIGHT_MODE "); break;
+        case Tracker::DEFAULT_WEST_MOVEMENT: Serial.print("DEF_WEST  "); break;
     }
     Serial.print(" -> ");
     switch (newState)
@@ -128,6 +136,7 @@ void Terminal::logTrackerStateChange(Tracker::State oldState, Tracker::State new
         case Tracker::IDLE: Serial.print("IDLE       "); break;
         case Tracker::ADJUSTING: Serial.print("ADJUSTING  "); break;
         case Tracker::NIGHT_MODE: Serial.print("NIGHT_MODE "); break;
+        case Tracker::DEFAULT_WEST_MOVEMENT: Serial.print("DEF_WEST  "); break;
     }
     if( strlen(reason) > 0 )
     {
@@ -372,7 +381,7 @@ void Terminal::logReversalAbortedNoProgress( bool movingEast, float eastValue, f
   if( initialDiff < 10 ) Serial.print(" ");
   Serial.print((int32_t)initialDiff);
   Serial.println(" ohms");
-} 
+}
 
 void Terminal::logNightModeEntered( int32_t avgBrightness, int32_t threshold )
 {
@@ -428,4 +437,66 @@ void Terminal::logDayModeEntered( int32_t avgBrightness, int32_t threshold )
     if( threshold < 10 ) Serial.print(" ");
     Serial.print(threshold);
     Serial.println(" ohms");
+}
+
+void Terminal::logDefaultWestMovementStarted( int32_t avgBrightness, int32_t threshold, unsigned long duration )
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Starting default west movement for ");
+    Serial.print(duration);
+    Serial.print("ms. Avg=");
+    if( avgBrightness < 100000 ) Serial.print(" ");
+    if( avgBrightness < 10000 ) Serial.print(" ");
+    if( avgBrightness < 1000 ) Serial.print(" ");
+    if( avgBrightness < 100 ) Serial.print(" ");
+    if( avgBrightness < 10 ) Serial.print(" ");
+    Serial.print(avgBrightness);
+    Serial.print(" Thresh=");
+    if( threshold < 100000 ) Serial.print(" ");
+    if( threshold < 10000 ) Serial.print(" ");
+    if( threshold < 1000 ) Serial.print(" ");
+    if( threshold < 100 ) Serial.print(" ");
+    if( threshold < 10 ) Serial.print(" ");
+    Serial.print(threshold);
+    Serial.println(" ohms");
+}
+
+void Terminal::logDefaultWestMovementCompleted()
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.println("] TRACKER: Default west movement completed");
+}
+
+void Terminal::logSuccessfulMovement( unsigned long duration, bool movingEast )
+{
+    unsigned long currentTime = millis();
+    unsigned long seconds = currentTime / 1000;
+    unsigned long minutes = seconds / 60;
+    seconds %= 60;
+    Serial.print("[");
+    Serial.print(minutes);
+    Serial.print(":");
+    if( seconds < 10 ) Serial.print("0");
+    Serial.print(seconds);
+    Serial.print("] TRACKER: Adjustment completed - sensors balanced. Direction=");
+    Serial.print(movingEast ? "EAST" : "WEST");
+    Serial.print(" Duration=");
+    Serial.print(duration);
+    Serial.println(" ms");
 } 
