@@ -11,6 +11,85 @@ A modular, object-oriented solar tracker for Arduino, using modern C++ classes a
 - **Night mode** with automatic east return and day/night transitions.
 - **Modular design**: Each subsystem (sensors, motor, tracker, display, terminal) is encapsulated in its own class or module.
 - **Comprehensive serial logging** for monitoring and debugging.
+- **Interactive terminal interface** for monitoring and configuration.
+
+---
+
+## Terminal Commands
+
+The solar tracker provides an interactive terminal interface with the following commands:
+
+### Status Commands
+- **meas**: Display all raw and filtered measurements
+  - Shows raw sensor values in ohms
+  - Shows filtered sensor values
+  - Shows calculated values (difference, tolerance)
+  - Shows balance status and brighter side
+
+- **status**: Display system status information
+  - Current tracker and motor states
+  - Day/night mode status
+  - Time until next adjustment
+  - Time since last state change
+  - Time since last day/night transition
+  - Last movement duration
+
+- **param**: Display parameter descriptions
+  - Lists all parameters grouped by module
+  - Shows parameter names and short names
+  - Includes detailed descriptions of each parameter
+  - Parameters are organized into:
+    * Sensor parameters
+    * Tracker parameters
+    * Motor parameters
+    * Terminal parameters
+
+### Configuration Commands
+- **set**: View or modify parameter values
+  - Without arguments: Lists all parameters with current values
+  - With arguments: `set <param> <value>` to change a parameter
+  - Shows parameter names and short names
+  - Displays current values and units
+  - Parameters can be referenced by full name or short name
+  - Example: `set balance_tol 10` or `set bth 30000`
+
+- **factory_reset**: Reset all parameters to default values
+  - Restores all parameters to their original configuration
+  - Provides confirmation of success or failure
+  - Does not display parameter list after reset
+
+- **help**: Display available commands and usage
+
+### Parameter Organization
+Parameters are grouped into modules for easier management:
+
+#### Sensor Parameters
+- `brightness_threshold (bth)`: Brightness level below which tracking is disabled
+- `brightness_filter_tau (bft)`: Time constant for brightness EMA filter
+- `night_threshold (nth)`: Brightness level that triggers night mode
+- `night_hysteresis (nhys)`: Hysteresis percentage for day/night transitions
+- `night_detection_time (ndt)`: Time required to confirm day/night mode change
+- `sampling_rate (samp)`: Rate at which sensors are sampled
+
+#### Tracker Parameters
+- `balance_tol (tol)`: Tolerance percentage for sensor balance
+- `max_move_time (mmt)`: Maximum time allowed for movement
+- `adjustment_period (adjp)`: Time between adjustments
+- `reversal_dead_time (rdt)`: Delay before reversing direction
+- `reversal_time_limit (rtl)`: Maximum time for reversal movement
+- `max_reversal_tries (mrt)`: Maximum number of reversal attempts
+- `default_west_enabled (dwe)`: Enable default west movement
+- `default_west_time (dwt)`: Duration of default west movement
+- `use_average_movement (uam)`: Use average of previous movements
+- `movement_history_size (mhs)`: Number of movements to track
+
+#### Motor Parameters
+- `motor_dead_time (mdt)`: Delay between motor direction changes
+
+#### Terminal Parameters
+- `terminal_print_period (tpp)`: Period between status updates
+- `terminal_moving_period (tmp)`: Update period during movement
+- `terminal_periodic_logs (tpl)`: Enable periodic logging
 
 ---
 

@@ -1,5 +1,12 @@
 # Solar Tracker Project - Code Style and Commit Guidelines
 
+## Build Commands
+
+### Arduino Build
+- **Arduino Mega Build**: `arduino-cli compile --fqbn arduino:avr:mega --warnings all solar_tracker.ino`
+- Use this command to verify compilation before committing changes
+- Ensure all syntax changes are correct and no compilation errors exist
+
 ## Code Formatting Preferences
 
 ### Parentheses and Spacing

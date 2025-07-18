@@ -6,7 +6,8 @@ MotorControl::MotorControl()
   moveStartTime(0),
   deadTimeStart(0),
   pendingCommand(PENDING_NONE),
-  isInitialized(false)
+  isInitialized(false),
+  deadTimeMs(MOTOR_DEAD_TIME_MS)
 {
 }
 
@@ -22,7 +23,7 @@ void MotorControl::update() {
   if (!isInitialized) return;
   unsigned long currentTime = millis();
   if (state == DEAD_TIME) {
-    if ((currentTime - deadTimeStart) >= MOTOR_DEAD_TIME_MS) {
+    if ((currentTime - deadTimeStart) >= deadTimeMs) {
       state = STOPPED;
       if (pendingCommand != PENDING_NONE) {
         switch (pendingCommand) {
@@ -100,4 +101,8 @@ MotorControl::State MotorControl::getState() const {
 
 void MotorControl::ensureSafety() {
   // Add any safety logic here if needed
+}
+
+void MotorControl::setDeadTime( unsigned long deadTimeMs ) {
+  this->deadTimeMs = deadTimeMs;
 }

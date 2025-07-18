@@ -21,6 +21,7 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     dayModeStartTime(0),
     nightConditionMet(false),
     dayConditionMet(false),
+    lastDayNightTransitionTime(0),
     reversalDeadTimeMs(1000),
     reversalTimeLimitMs(TRACKER_REVERSAL_TIME_LIMIT_MS),
     maxReversalTries(3),
@@ -41,6 +42,8 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     lastSamplingTime(0),
     movementStartTime(0),
     lastBrightnessSampleTime(0),
+    lastStateChangeTime(0),
+    lastMovementDuration(0),
     initialEastValue(0.0f),
     initialWestValue(0.0f),
     initialDiff(0.0f),
@@ -55,6 +58,9 @@ void Tracker::begin()
   unsigned long currentTime = millis();
   lastAdjustmentTime = currentTime;
   lastSamplingTime = currentTime;
+  lastStateChangeTime = currentTime;
+  lastDayNightTransitionTime = currentTime;
+  lastMovementDuration = 0;
   state = IDLE;
   reversalTries = 0;
   waitingForReversal = false;
@@ -173,7 +179,8 @@ void Tracker::update()
         {
           extern Terminal terminal;
           terminal.logNightModeEntered( (int32_t)filteredBrightness, nightThresholdOhms );
-          state = NIGHT_MODE;
+          lastDayNightTransitionTime = currentTime;
+          changeState( NIGHT_MODE );
           motorControl->stop();
           motorControl->moveEast();  // Move to full east position
           dayConditionMet = false;
@@ -205,7 +212,7 @@ void Tracker::update()
             motorControl->moveWest();
             defaultWestMovementStartTime = currentTime;
             lastAdjustmentTime = currentTime;  // Start timing from when movement begins
-            state = DEFAULT_WEST_MOVEMENT;
+            changeState( DEFAULT_WEST_MOVEMENT );
           }
           else
           {
@@ -216,7 +223,7 @@ void Tracker::update()
         }
         else
         {
-          state = ADJUSTING;
+          changeState( ADJUSTING );
           lastSamplingTime = currentTime;
           movementStartTime = currentTime;
           lastAdjustmentTime = currentTime;  // Start timing from when adjustment begins
@@ -240,7 +247,7 @@ void Tracker::update()
           defaultWestMovementStartTime = 0;
           extern Terminal terminal;
           terminal.logDefaultWestMovementCompleted();
-          state = IDLE;
+          changeState( IDLE );
         }
       }
       break;
@@ -259,7 +266,8 @@ void Tracker::update()
         {
           extern Terminal terminal;
           terminal.logDayModeEntered( (int32_t)filteredBrightness, (int32_t)dayThreshold );
-          state = IDLE;
+          lastDayNightTransitionTime = currentTime;
+          changeState( IDLE );
           motorControl->stop();
           // Reset adjustment timer to start fresh when entering day mode
           lastAdjustmentTime = currentTime;
@@ -356,7 +364,7 @@ void Tracker::update()
           extern Terminal terminal;
           terminal.logAdjustmentAbortedLowBrightness( (int32_t)filteredBrightness, brightnessThresholdOhms );
           motorControl->stop();
-          state = IDLE;
+          changeState( IDLE );
           reversalTries = 0;
           waitingForReversal = false;
         }
@@ -366,10 +374,11 @@ void Tracker::update()
           motorControl->stop();
           // Record successful movement duration
           unsigned long movementDuration = currentTime - movementStartTime;
+          lastMovementDuration = movementDuration;
           recordSuccessfulMovement( movementDuration );
           extern Terminal terminal;
           terminal.logSuccessfulMovement( movementDuration, movingEast );
-          state = IDLE;
+          changeState( IDLE );
           reversalTries = 0;
           waitingForReversal = false;
         }
@@ -403,7 +412,7 @@ void Tracker::update()
             }
             else
             {
-              state = IDLE;
+              changeState( IDLE );
               reversalTries = 0;
               waitingForReversal = false;
             }
@@ -527,4 +536,30 @@ unsigned long Tracker::getTimeUntilNextAdjustment() const
     return 0;
   }
   return ( adjustmentPeriodMs - timeSinceLastAdjustment );
+}
+
+unsigned long Tracker::getTimeSinceLastStateChange() const
+{
+  unsigned long currentTime = millis();
+  return currentTime - lastStateChangeTime;
+}
+
+unsigned long Tracker::getLastMovementDuration() const
+{
+  return lastMovementDuration;
+}
+
+unsigned long Tracker::getTimeSinceLastDayNightTransition() const
+{
+  unsigned long currentTime = millis();
+  return currentTime - lastDayNightTransitionTime;
+}
+
+void Tracker::changeState( State newState )
+{
+  if( state != newState )
+  {
+    state = newState;
+    lastStateChangeTime = millis();
+  }
 }

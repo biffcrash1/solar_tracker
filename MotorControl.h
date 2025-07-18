@@ -29,6 +29,7 @@ public:
   void stop();
   State getState() const;
   void ensureSafety();
+  void setDeadTime( unsigned long deadTimeMs );
 
 private:
   State state;
@@ -36,6 +37,7 @@ private:
   unsigned long deadTimeStart;
   PendingCommand pendingCommand;
   bool isInitialized;
+  unsigned long deadTimeMs;
 };
 
 #endif // MOTOR_CONTROL_H

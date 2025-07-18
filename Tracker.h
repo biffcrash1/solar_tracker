@@ -55,6 +55,9 @@ public:
     return filteredBrightness;
   }
   unsigned long getAverageMovementTime() const;
+  unsigned long getTimeSinceLastStateChange() const;
+  unsigned long getLastMovementDuration() const;
+  unsigned long getTimeSinceLastDayNightTransition() const;
 
 private:
   State state;
@@ -79,6 +82,7 @@ private:
   unsigned long dayModeStartTime;
   bool nightConditionMet;
   bool dayConditionMet;
+  unsigned long lastDayNightTransitionTime;
 
   // Overshoot correction
   unsigned long reversalDeadTimeMs; // ms to wait before reversing after overshoot
@@ -105,6 +109,8 @@ private:
   unsigned long lastSamplingTime;
   unsigned long movementStartTime;
   unsigned long lastBrightnessSampleTime;
+  unsigned long lastStateChangeTime;
+  unsigned long lastMovementDuration;
 
   // Overshoot detection
   float initialEastValue;
@@ -114,9 +120,10 @@ private:
   bool movingEast;
 
   // Helper methods
-  void recordSuccessfulMovement( unsigned long duration );
   void initializeMovementHistory();
   void cleanupMovementHistory();
+  void recordSuccessfulMovement( unsigned long duration );
+  void changeState( State newState );
 };
 
 #endif // TRACKER_H

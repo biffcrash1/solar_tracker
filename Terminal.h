@@ -7,11 +7,20 @@
 #include "MotorControl.h"
 #include "Photosensor.h"
 
+// Forward declaration to avoid circular dependency
+class Settings;
+
 class Terminal {
 public:
   Terminal();
   void begin();
   void update( Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor );
+  
+  // Command processing
+  void setSettings( Settings* settings );
+  void processSerialInput();
+  void processCommand( const char* command );
+  void parseCommand( const char* input, char* command, char* param1, char* param2 );
 
   // Configuration
   void setPrintPeriod( unsigned long printPeriodMs );
@@ -46,9 +55,18 @@ private:
   Tracker::State lastTrackerState;
   MotorControl::State lastMotorState;
   bool lastBalanced;
-
+  
+  // Command processing
+  Settings* settings;
+  static const int COMMAND_BUFFER_SIZE = 64;
+  char commandBuffer[COMMAND_BUFFER_SIZE];
+  int commandBufferIndex;
+  
   // Helper functions
   void printPaddedNumber( float value );
+  void clearCommandBuffer();
+  void trimString( char* str );
+  void toLowerCase( char* str );
 };
 
 #endif // TERMINAL_H

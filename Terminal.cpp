@@ -1,4 +1,7 @@
 #include "Terminal.h"
+#include "Settings.h"
+#include <string.h>
+#include <ctype.h>
 
 Terminal::Terminal()
     : printPeriodMs(TERMINAL_PRINT_PERIOD_MS),
@@ -8,8 +11,11 @@ Terminal::Terminal()
       logOnlyWhileMoving(TERMINAL_LOG_ONLY_WHILE_MOVING),
       lastTrackerState(Tracker::IDLE),
       lastMotorState(MotorControl::STOPPED),
-      lastBalanced(false)
+      lastBalanced(false),
+      settings(nullptr),
+      commandBufferIndex(0)
 {
+    clearCommandBuffer();
 }
 
 void Terminal::begin()
@@ -18,10 +24,186 @@ void Terminal::begin()
     Serial.begin(9600);
     Serial.println("Solar Tracker Terminal Started");
     Serial.println("==============================");
+    Serial.println("Type 'help' for available commands");
+}
+
+void Terminal::setSettings( Settings* settings )
+{
+    this->settings = settings;
+}
+
+void Terminal::clearCommandBuffer()
+{
+    memset( commandBuffer, 0, COMMAND_BUFFER_SIZE );
+    commandBufferIndex = 0;
+}
+
+void Terminal::trimString( char* str )
+{
+    // Remove leading whitespace
+    char* start = str;
+    while( *start && isspace( *start ) )
+        start++;
+    
+    // Move string to beginning if needed
+    if( start != str )
+    {
+        memmove( str, start, strlen( start ) + 1 );
+    }
+    
+    // Remove trailing whitespace
+    int len = strlen( str );
+    while( len > 0 && isspace( str[len - 1] ) )
+    {
+        str[--len] = '\0';
+    }
+}
+
+void Terminal::toLowerCase( char* str )
+{
+    for( int i = 0; str[i]; i++ )
+    {
+        str[i] = tolower( str[i] );
+    }
+}
+
+void Terminal::processSerialInput()
+{
+    while( Serial.available() > 0 )
+    {
+        char c = Serial.read();
+        
+        // Handle backspace
+        if( c == '\b' || c == 127 )
+        {
+            if( commandBufferIndex > 0 )
+            {
+                commandBufferIndex--;
+                commandBuffer[commandBufferIndex] = '\0';
+                Serial.print( "\b \b" ); // Backspace, space, backspace
+            }
+        }
+        // Handle newline/carriage return
+        else if( c == '\n' || c == '\r' )
+        {
+            if( commandBufferIndex > 0 )
+            {
+                Serial.println(); // Echo newline
+                commandBuffer[commandBufferIndex] = '\0';
+                processCommand( commandBuffer );
+                clearCommandBuffer();
+            }
+        }
+        // Handle regular characters
+        else if( c >= 32 && c <= 126 ) // Printable ASCII
+        {
+            if( commandBufferIndex < COMMAND_BUFFER_SIZE - 1 )
+            {
+                commandBuffer[commandBufferIndex++] = c;
+                commandBuffer[commandBufferIndex] = '\0';
+                Serial.print( c ); // Echo character
+            }
+        }
+    }
+}
+
+void Terminal::parseCommand( const char* input, char* command, char* param1, char* param2 )
+{
+    // Initialize output parameters
+    command[0] = '\0';
+    param1[0] = '\0';
+    param2[0] = '\0';
+    
+    // Make a copy of input to work with
+    char inputCopy[COMMAND_BUFFER_SIZE];
+    strncpy( inputCopy, input, COMMAND_BUFFER_SIZE - 1 );
+    inputCopy[COMMAND_BUFFER_SIZE - 1] = '\0';
+    
+    // Trim and convert to lowercase
+    trimString( inputCopy );
+    toLowerCase( inputCopy );
+    
+    // Parse command
+    char* token = strtok( inputCopy, " \t" );
+    if( token )
+    {
+        strcpy( command, token );
+        
+        // Parse first parameter
+        token = strtok( nullptr, " \t" );
+        if( token )
+        {
+            strcpy( param1, token );
+            
+            // Parse second parameter
+            token = strtok( nullptr, " \t" );
+            if( token )
+            {
+                strcpy( param2, token );
+            }
+        }
+    }
+}
+
+void Terminal::processCommand( const char* command )
+{
+    char cmd[32];
+    char param1[32];
+    char param2[32];
+    
+    parseCommand( command, cmd, param1, param2 );
+    
+    if( strlen( cmd ) == 0 )
+    {
+        return; // Empty command
+    }
+    
+    if( !settings )
+    {
+        Serial.println();
+        Serial.println( "ERROR: Settings module not initialized" );
+        return;
+    }
+    
+    // Handle commands
+    if( strcmp( cmd, "meas" ) == 0 )
+    {
+        settings->handleMeasCommand();
+    }
+    else if( strcmp( cmd, "param" ) == 0 )
+    {
+        settings->handleParamCommand();
+    }
+    else if( strcmp( cmd, "status" ) == 0 )
+    {
+        settings->handleStatusCommand();
+    }
+    else if( strcmp( cmd, "set" ) == 0 )
+    {
+        settings->handleSetCommand( param1, param2 );
+    }
+    else if( strcmp( cmd, "help" ) == 0 )
+    {
+        settings->handleHelpCommand();
+    }
+    else if( strcmp( cmd, "factory_reset" ) == 0 )
+    {
+        settings->handleFactoryResetCommand();
+    }
+    else
+    {
+        Serial.println();
+        Serial.print( "ERROR: Unknown command '" );
+        Serial.print( cmd );
+        Serial.println( "'. Type 'help' for available commands." );
+    }
 }
 
 void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor)
 {
+    // Process any incoming serial commands
+    processSerialInput();
+    
     unsigned long currentTime = millis();
     // Check for tracker state changes
     Tracker::State currentTrackerState = tracker->getState();

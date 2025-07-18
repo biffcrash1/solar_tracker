@@ -7,6 +7,7 @@
 #include "MotorControl.h"
 #include "Tracker.h"
 #include "Terminal.h"
+#include "Settings.h"
 #include <Arduino.h>
 #include <math.h>
 #include <stdint.h>
@@ -19,6 +20,7 @@ PhotoSensor westSensor(A1, 1000);
 MotorControl motorControl;
 Tracker tracker(&eastSensor, &westSensor, &motorControl);
 Terminal terminal;
+Settings settings;
 
 //***********************************************************
 //     Function Name: setup
@@ -31,7 +33,8 @@ Terminal terminal;
 //
 //     Description:
 //     - Initializes the solar tracker system including I2C, display,
-//       graph, and photosensors. Sets up initial timing variables.
+//       graph, photosensors, motor control, tracker, terminal, and
+//       settings modules. Sets up command interface.
 //
 //***********************************************************
 void setup()
@@ -45,11 +48,11 @@ void setup()
   motorControl.begin();
   tracker.begin();
   terminal.begin();
-
-
+  
+  // Initialize settings module and connect to terminal
+  settings.begin( &tracker, &motorControl, &eastSensor, &westSensor, &terminal );
+  terminal.setSettings( &settings );
 }
-
-
 
 //***********************************************************
 //     Function Name: loop
@@ -62,8 +65,8 @@ void setup()
 //
 //     Description:
 //     - Main control loop that runs continuously. Updates photosensors,
-//       generates demo voltage/current data, calculates power, updates
-//       the graph, and refreshes the display every second.
+//       motor control, tracker state machine, terminal logging and
+//       command processing, and refreshes the display.
 //
 //***********************************************************
 void loop()
@@ -78,7 +81,7 @@ void loop()
   // Update tracker state machine
   tracker.update();
 
-  // Update terminal logging
+  // Update terminal logging and command processing
   terminal.update( &tracker, &motorControl, &eastSensor, &westSensor );
 
   // Update display
