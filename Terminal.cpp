@@ -21,7 +21,9 @@ Terminal::Terminal()
 void Terminal::begin()
 {
     lastPrintTime = millis();
-    Serial.begin(9600);
+    Serial.begin(115200);
+    Serial.println();
+    Serial.println();
     Serial.println("Solar Tracker Terminal Started");
     Serial.println("==============================");
     Serial.println("Type 'help' for available commands");
