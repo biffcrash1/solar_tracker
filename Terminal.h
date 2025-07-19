@@ -27,6 +27,12 @@ public:
   void setPeriodicLogs( bool enable );
   void setLogOnlyWhileMoving( bool enable );
   void setMovingPrintPeriod( unsigned long printPeriodMs );
+  
+  // Getters for configuration
+  unsigned long getPrintPeriod() const { return printPeriodMs; }
+  bool getPeriodicLogs() const { return enablePeriodicLogs; }
+  bool getLogOnlyWhileMoving() const { return logOnlyWhileMoving; }
+  unsigned long getMovingPrintPeriod() const { return movingPrintPeriodMs; }
 
   // Logging
   void logTrackerStateChange( Tracker::State oldState, Tracker::State newState, const char* reason );

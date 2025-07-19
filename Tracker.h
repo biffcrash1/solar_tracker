@@ -38,6 +38,24 @@ public:
   void setUseAverageMovementTime( bool enabled );
   void setMovementHistorySize( uint8_t size );
 
+  // Getters for configuration
+  float getTolerance() const { return tolerancePercent; }
+  unsigned long getMaxMovementTime() const { return maxMovementTimeMs / 1000UL; }
+  unsigned long getAdjustmentPeriod() const { return adjustmentPeriodMs / 1000UL; }
+  unsigned long getSamplingRate() const { return samplingRateMs; }
+  int32_t getBrightnessThreshold() const { return brightnessThresholdOhms; }
+  float getBrightnessFilterTimeConstant() const { return brightnessFilterTimeConstantS; }
+  unsigned long getReversalDeadTime() const { return reversalDeadTimeMs; }
+  int getMaxReversalTries() const { return maxReversalTries; }
+  unsigned long getReversalTimeLimit() const { return reversalTimeLimitMs; }
+  int32_t getNightThreshold() const { return nightThresholdOhms; }
+  float getNightHysteresis() const { return nightHysteresisPercent; }
+  unsigned long getNightDetectionTime() const { return nightDetectionTimeMs / 1000UL; }
+  bool getDefaultWestMovementEnabled() const { return defaultWestMovementEnabled; }
+  unsigned long getDefaultWestMovementTime() const { return defaultWestMovementMs; }
+  bool getUseAverageMovementTime() const { return useAverageMovementTime; }
+  uint8_t getMovementHistorySize() const { return movementHistorySize; }
+
   // Status
   State getState() const;
   bool isAdjusting() const;

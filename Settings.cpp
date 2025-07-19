@@ -65,48 +65,47 @@ void Settings::refreshParameterValues()
 
 float Settings::getCurrentParameterValue( const char* name )
 {
-  // For most parameters, return the config defaults since we can't easily get runtime values
-  // This is used primarily for validation constraints
+  // Return actual runtime values from modules
   if( isParameterName( name, "balance_tol" ) )
-    return TRACKER_TOLERANCE_PERCENT;
+    return tracker->getTolerance();
   else if( isParameterName( name, "max_move_time" ) )
-    return TRACKER_MAX_MOVEMENT_TIME_SECONDS;
+    return tracker->getMaxMovementTime();
   else if( isParameterName( name, "adjustment_period" ) )
-    return TRACKER_ADJUSTMENT_PERIOD_SECONDS;
+    return tracker->getAdjustmentPeriod();
   else if( isParameterName( name, "sampling_rate" ) )
-    return TRACKER_SAMPLING_RATE_MS;
+    return tracker->getSamplingRate();
   else if( isParameterName( name, "brightness_threshold" ) )
-    return TRACKER_BRIGHTNESS_THRESHOLD_OHMS;
+    return tracker->getBrightnessThreshold();
   else if( isParameterName( name, "brightness_filter_tau" ) )
-    return TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S;
+    return tracker->getBrightnessFilterTimeConstant();
   else if( isParameterName( name, "night_threshold" ) )
-    return TRACKER_NIGHT_THRESHOLD_OHMS;
+    return tracker->getNightThreshold();
   else if( isParameterName( name, "night_hysteresis" ) )
-    return TRACKER_NIGHT_HYSTERESIS_PERCENT;
+    return tracker->getNightHysteresis();
   else if( isParameterName( name, "night_detection_time" ) )
-    return TRACKER_NIGHT_DETECTION_TIME_SECONDS;
+    return tracker->getNightDetectionTime();
   else if( isParameterName( name, "reversal_dead_time" ) )
-    return 1000.0f; // Default value, not in config
+    return tracker->getReversalDeadTime();
   else if( isParameterName( name, "reversal_time_limit" ) )
-    return TRACKER_REVERSAL_TIME_LIMIT_MS;
+    return tracker->getReversalTimeLimit();
   else if( isParameterName( name, "max_reversal_tries" ) )
-    return 3.0f; // Default value, not in config
+    return tracker->getMaxReversalTries();
   else if( isParameterName( name, "default_west_enabled" ) )
-    return TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT ? 1.0f : 0.0f;
+    return tracker->getDefaultWestMovementEnabled() ? 1.0f : 0.0f;
   else if( isParameterName( name, "default_west_time" ) )
-    return TRACKER_DEFAULT_WEST_MOVEMENT_MS;
+    return tracker->getDefaultWestMovementTime();
   else if( isParameterName( name, "use_average_movement" ) )
-    return TRACKER_USE_AVERAGE_MOVEMENT_TIME ? 1.0f : 0.0f;
+    return tracker->getUseAverageMovementTime() ? 1.0f : 0.0f;
   else if( isParameterName( name, "movement_history_size" ) )
-    return TRACKER_MOVEMENT_HISTORY_SIZE;
+    return tracker->getMovementHistorySize();
   else if( isParameterName( name, "motor_dead_time" ) )
-    return MOTOR_DEAD_TIME_MS;
+    return motorControl->getDeadTime();
   else if( isParameterName( name, "terminal_print_period" ) )
-    return TERMINAL_PRINT_PERIOD_MS;
+    return terminal->getPrintPeriod();
   else if( isParameterName( name, "terminal_moving_period" ) )
-    return TERMINAL_MOVING_PRINT_PERIOD_MS;
+    return terminal->getMovingPrintPeriod();
   else if( isParameterName( name, "terminal_periodic_logs" ) )
-    return TERMINAL_ENABLE_PERIODIC_LOGS ? 1.0f : 0.0f;
+    return terminal->getPeriodicLogs() ? 1.0f : 0.0f;
   
   return 0.0f;
 }

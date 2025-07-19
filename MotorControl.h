@@ -30,6 +30,9 @@ public:
   State getState() const;
   void ensureSafety();
   void setDeadTime( unsigned long deadTimeMs );
+  
+  // Getters for configuration
+  unsigned long getDeadTime() const { return deadTimeMs; }
 
 private:
   State state;
