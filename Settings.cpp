@@ -1,4 +1,5 @@
-#include "Settings.h"
+ 
+ #include "Settings.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -8,7 +9,8 @@ Settings::Settings()
     eastSensor( nullptr ),
     westSensor( nullptr ),
     terminal( nullptr ),
-    parameterCount( 0 )
+    parameterCount( 0 ),
+    saveToEeprom( true )  // Default to saving to EEPROM
 {
 }
 
@@ -20,46 +22,150 @@ void Settings::begin( Tracker* tracker, MotorControl* motorControl, PhotoSensor*
   this->westSensor = westSensor;
   this->terminal = terminal;
   
-  initializeParameters();
-  refreshParameterValues();
+  // Default to saving to EEPROM
+  saveToEeprom = true;
+  
+  // Initialize parameter metadata
+  parameterCount = 0;
+  const ParameterMetadata metadata[] = {
+    // Tracker parameters
+    { "balance_tol", "tol", "%", 0.0f, 100.0f, false, false, true, false },
+    { "max_move_time", "mmt", "s", 1.0f, 3600.0f, true, true, false, false },
+    { "adjustment_period", "adjp", "s", 1.0f, 3600.0f, true, true, false, false },
+    { "sampling_rate", "samp", "ms", 10.0f, 10000.0f, true, false, false, false },
+    { "brightness_threshold", "bth", "ohms", 0.0f, SENSOR_MAX_RESISTANCE_OHMS, true, false, false, true },
+    { "brightness_filter_tau", "bft", "s", 0.1f, 300.0f, false, false, false, false },
+    { "night_threshold", "nth", "ohms", 0.0f, SENSOR_MAX_RESISTANCE_OHMS, true, false, false, true },
+    { "night_hysteresis", "nhys", "%", 0.0f, 100.0f, false, false, true, false },
+    { "night_detection_time", "ndt", "s", 1.0f, 3600.0f, true, true, false, false },
+    { "reversal_dead_time", "rdt", "ms", 0.0f, 60000.0f, true, false, false, false },
+    { "reversal_time_limit", "rtl", "ms", 100.0f, 60000.0f, true, false, false, false },
+    { "max_reversal_tries", "mrt", "", 1.0f, 10.0f, true, false, false, false },
+    { "default_west_enabled", "dwe", "", 0.0f, 1.0f, true, false, false, false },
+    { "default_west_time", "dwt", "ms", 100.0f, 60000.0f, true, false, false, false },
+    { "use_average_movement", "uam", "", 0.0f, 1.0f, true, false, false, false },
+    { "movement_history_size", "mhs", "", 1.0f, 10.0f, true, false, false, false },
+    
+    // Motor parameters
+    { "motor_dead_time", "mdt", "ms", 0.0f, 10000.0f, true, false, false, false },
+    
+    // Terminal parameters
+    { "terminal_print_period", "tpp", "ms", 100.0f, 60000.0f, true, false, false, false },
+    { "terminal_moving_period", "tmp", "ms", 50.0f, 60000.0f, true, false, false, false },
+    { "terminal_periodic_logs", "tpl", "", 0.0f, 1.0f, true, false, false, false }
+  };
+  
+  // Initialize parameter metadata
+  for( size_t i = 0; i < sizeof(metadata) / sizeof(metadata[0]); i++ )
+  {
+    parameters[parameterCount].meta = metadata[i];
+    parameterCount++;
+  }
+  
+  // If EEPROM is valid, load values from it
+  if( eeprom.isValid() )
+  {
+    eeprom.loadParameters( this );
+    Serial.println( "Loaded parameters from EEPROM" );
+  }
+  else
+  {
+    // EEPROM is invalid, initialize with defaults
+    Serial.println( "Initializing parameters with defaults" );
+    initializeParameters();
+    eeprom.factoryReset( this );
+  }
 }
 
 void Settings::initializeParameters()
 {
   parameterCount = 0;
   
-  // Tracker parameters
-  parameters[parameterCount++] = { "balance_tol", "tol", "%", 0.0f, 0.0f, 100.0f, false, false, true, false };
-  parameters[parameterCount++] = { "max_move_time", "mmt", "s", 0.0f, 1.0f, 3600.0f, true, true, false, false };
-  parameters[parameterCount++] = { "adjustment_period", "adjp", "s", 0.0f, 1.0f, 3600.0f, true, true, false, false };
-  parameters[parameterCount++] = { "sampling_rate", "samp", "ms", 0.0f, 10.0f, 10000.0f, true, false, false, false };
-  parameters[parameterCount++] = { "brightness_threshold", "bth", "ohms", 0.0f, 0.0f, SENSOR_MAX_RESISTANCE_OHMS, true, false, false, true };
-  parameters[parameterCount++] = { "brightness_filter_tau", "bft", "s", 0.0f, 0.1f, 300.0f, false, false, false, false };
-  parameters[parameterCount++] = { "night_threshold", "nth", "ohms", 0.0f, 0.0f, SENSOR_MAX_RESISTANCE_OHMS, true, false, false, true };
-  parameters[parameterCount++] = { "night_hysteresis", "nhys", "%", 0.0f, 0.0f, 100.0f, false, false, true, false };
-  parameters[parameterCount++] = { "night_detection_time", "ndt", "s", 0.0f, 1.0f, 3600.0f, true, true, false, false };
-  parameters[parameterCount++] = { "reversal_dead_time", "rdt", "ms", 0.0f, 0.0f, 60000.0f, true, false, false, false };
-  parameters[parameterCount++] = { "reversal_time_limit", "rtl", "ms", 0.0f, 100.0f, 60000.0f, true, false, false, false };
-  parameters[parameterCount++] = { "max_reversal_tries", "mrt", "", 0.0f, 1.0f, 10.0f, true, false, false, false };
-  parameters[parameterCount++] = { "default_west_enabled", "dwe", "", 0.0f, 0.0f, 1.0f, true, false, false, false };
-  parameters[parameterCount++] = { "default_west_time", "dwt", "ms", 0.0f, 100.0f, 60000.0f, true, false, false, false };
-  parameters[parameterCount++] = { "use_average_movement", "uam", "", 0.0f, 0.0f, 1.0f, true, false, false, false };
-  parameters[parameterCount++] = { "movement_history_size", "mhs", "", 0.0f, 1.0f, 10.0f, true, false, false, false };
+  // Define parameter metadata
+  const ParameterMetadata metadata[] = {
+    // Tracker parameters
+    { "balance_tol", "tol", "%", 0.0f, 100.0f, false, false, true, false },
+    { "max_move_time", "mmt", "s", 1.0f, 3600.0f, true, true, false, false },
+    { "adjustment_period", "adjp", "s", 1.0f, 3600.0f, true, true, false, false },
+    { "sampling_rate", "samp", "ms", 10.0f, 10000.0f, true, false, false, false },
+    { "brightness_threshold", "bth", "ohms", 0.0f, SENSOR_MAX_RESISTANCE_OHMS, true, false, false, true },
+    { "brightness_filter_tau", "bft", "s", 0.1f, 300.0f, false, false, false, false },
+    { "night_threshold", "nth", "ohms", 0.0f, SENSOR_MAX_RESISTANCE_OHMS, true, false, false, true },
+    { "night_hysteresis", "nhys", "%", 0.0f, 100.0f, false, false, true, false },
+    { "night_detection_time", "ndt", "s", 1.0f, 3600.0f, true, true, false, false },
+    { "reversal_dead_time", "rdt", "ms", 0.0f, 60000.0f, true, false, false, false },
+    { "reversal_time_limit", "rtl", "ms", 100.0f, 60000.0f, true, false, false, false },
+    { "max_reversal_tries", "mrt", "", 1.0f, 10.0f, true, false, false, false },
+    { "default_west_enabled", "dwe", "", 0.0f, 1.0f, true, false, false, false },
+    { "default_west_time", "dwt", "ms", 100.0f, 60000.0f, true, false, false, false },
+    { "use_average_movement", "uam", "", 0.0f, 1.0f, true, false, false, false },
+    { "movement_history_size", "mhs", "", 1.0f, 10.0f, true, false, false, false },
+    
+    // Motor parameters
+    { "motor_dead_time", "mdt", "ms", 0.0f, 10000.0f, true, false, false, false },
+    
+    // Terminal parameters
+    { "terminal_print_period", "tpp", "ms", 100.0f, 60000.0f, true, false, false, false },
+    { "terminal_moving_period", "tmp", "ms", 50.0f, 60000.0f, true, false, false, false },
+    { "terminal_periodic_logs", "tpl", "", 0.0f, 1.0f, true, false, false, false }
+  };
   
-  // Motor parameters
-  parameters[parameterCount++] = { "motor_dead_time", "mdt", "ms", 0.0f, 0.0f, 10000.0f, true, false, false, false };
-  
-  // Terminal parameters
-  parameters[parameterCount++] = { "terminal_print_period", "tpp", "ms", 0.0f, 100.0f, 60000.0f, true, false, false, false };
-  parameters[parameterCount++] = { "terminal_moving_period", "tmp", "ms", 0.0f, 50.0f, 60000.0f, true, false, false, false };
-  parameters[parameterCount++] = { "terminal_periodic_logs", "tpl", "", 0.0f, 0.0f, 1.0f, true, false, false, false };
+  // Initialize parameters with metadata and default values
+  for( size_t i = 0; i < sizeof(metadata) / sizeof(metadata[0]); i++ )
+  {
+    parameters[parameterCount].meta = metadata[i];
+    
+    // Set default value from param_config.h
+    if( isParameterName( metadata[i].name, "balance_tol" ) )
+      parameters[parameterCount].currentValue = TRACKER_TOLERANCE_PERCENT;
+    else if( isParameterName( metadata[i].name, "max_move_time" ) )
+      parameters[parameterCount].currentValue = TRACKER_MAX_MOVEMENT_TIME_SECONDS;
+    else if( isParameterName( metadata[i].name, "adjustment_period" ) )
+      parameters[parameterCount].currentValue = TRACKER_ADJUSTMENT_PERIOD_SECONDS;
+    else if( isParameterName( metadata[i].name, "sampling_rate" ) )
+      parameters[parameterCount].currentValue = TRACKER_SAMPLING_RATE_MS;
+    else if( isParameterName( metadata[i].name, "brightness_threshold" ) )
+      parameters[parameterCount].currentValue = TRACKER_BRIGHTNESS_THRESHOLD_OHMS;
+    else if( isParameterName( metadata[i].name, "brightness_filter_tau" ) )
+      parameters[parameterCount].currentValue = TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S;
+    else if( isParameterName( metadata[i].name, "night_threshold" ) )
+      parameters[parameterCount].currentValue = TRACKER_NIGHT_THRESHOLD_OHMS;
+    else if( isParameterName( metadata[i].name, "night_hysteresis" ) )
+      parameters[parameterCount].currentValue = TRACKER_NIGHT_HYSTERESIS_PERCENT;
+    else if( isParameterName( metadata[i].name, "night_detection_time" ) )
+      parameters[parameterCount].currentValue = TRACKER_NIGHT_DETECTION_TIME_SECONDS;
+    else if( isParameterName( metadata[i].name, "reversal_dead_time" ) )
+      parameters[parameterCount].currentValue = 1000.0f; // Default value
+    else if( isParameterName( metadata[i].name, "reversal_time_limit" ) )
+      parameters[parameterCount].currentValue = TRACKER_REVERSAL_TIME_LIMIT_MS;
+    else if( isParameterName( metadata[i].name, "max_reversal_tries" ) )
+      parameters[parameterCount].currentValue = 3.0f; // Default value
+    else if( isParameterName( metadata[i].name, "default_west_enabled" ) )
+      parameters[parameterCount].currentValue = TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT ? 1.0f : 0.0f;
+    else if( isParameterName( metadata[i].name, "default_west_time" ) )
+      parameters[parameterCount].currentValue = TRACKER_DEFAULT_WEST_MOVEMENT_MS;
+    else if( isParameterName( metadata[i].name, "use_average_movement" ) )
+      parameters[parameterCount].currentValue = TRACKER_USE_AVERAGE_MOVEMENT_TIME ? 1.0f : 0.0f;
+    else if( isParameterName( metadata[i].name, "movement_history_size" ) )
+      parameters[parameterCount].currentValue = TRACKER_MOVEMENT_HISTORY_SIZE;
+    else if( isParameterName( metadata[i].name, "motor_dead_time" ) )
+      parameters[parameterCount].currentValue = MOTOR_DEAD_TIME_MS;
+    else if( isParameterName( metadata[i].name, "terminal_print_period" ) )
+      parameters[parameterCount].currentValue = TERMINAL_PRINT_PERIOD_MS;
+    else if( isParameterName( metadata[i].name, "terminal_moving_period" ) )
+      parameters[parameterCount].currentValue = TERMINAL_MOVING_PRINT_PERIOD_MS;
+    else if( isParameterName( metadata[i].name, "terminal_periodic_logs" ) )
+      parameters[parameterCount].currentValue = TERMINAL_ENABLE_PERIODIC_LOGS ? 1.0f : 0.0f;
+    
+    parameterCount++;
+  }
 }
 
 void Settings::refreshParameterValues()
 {
   for( int i = 0; i < parameterCount; i++ )
   {
-    parameters[i].currentValue = getCurrentParameterValue( parameters[i].name );
+    parameters[i].currentValue = getCurrentParameterValue( parameters[i].meta.name );
   }
 }
 
@@ -119,7 +225,7 @@ Parameter* Settings::findParameter( const char* name )
 {
   for( int i = 0; i < parameterCount; i++ )
   {
-    if( isParameterName( name, parameters[i].name ) || isParameterName( name, parameters[i].shortName ) )
+    if( isParameterName( name, parameters[i].meta.name ) || isParameterName( name, parameters[i].meta.shortName ) )
     {
       return &parameters[i];
     }
@@ -149,7 +255,7 @@ bool Settings::validateParameterConstraints( const char* paramName, float value 
   if( !param )
     return false;
     
-  if( value < param->minValue || value > param->maxValue )
+  if( value < param->meta.minValue || value > param->meta.maxValue )
     return false;
     
   // Check interdependent constraints
@@ -237,7 +343,7 @@ bool Settings::setParameter( const char* paramName, const char* valueStr )
   // Handle boolean values
   if( Parameter* param = findParameter( paramName ) )
   {
-    if( strlen( param->units ) == 0 && param->maxValue == 1.0f && param->minValue == 0.0f )
+    if( strlen( param->meta.units ) == 0 && param->meta.maxValue == 1.0f && param->meta.minValue == 0.0f )
     {
       // Convert string to boolean
       bool boolValue;
@@ -285,45 +391,45 @@ bool Settings::setParameter( const char* paramName, float value )
   // Apply the parameter change
   bool success = true;
   
-  if( isParameterName( param->name, "balance_tol" ) )
+  if( isParameterName( param->meta.name, "balance_tol" ) )
     tracker->setTolerance( value );
-  else if( isParameterName( param->name, "max_move_time" ) )
+  else if( isParameterName( param->meta.name, "max_move_time" ) )
     tracker->setMaxMovementTime( (unsigned long)value );
-  else if( isParameterName( param->name, "adjustment_period" ) )
+  else if( isParameterName( param->meta.name, "adjustment_period" ) )
     tracker->setAdjustmentPeriod( (unsigned long)value );
-  else if( isParameterName( param->name, "sampling_rate" ) )
+  else if( isParameterName( param->meta.name, "sampling_rate" ) )
     tracker->setSamplingRate( (unsigned long)value );
-  else if( isParameterName( param->name, "brightness_threshold" ) )
+  else if( isParameterName( param->meta.name, "brightness_threshold" ) )
     tracker->setBrightnessThreshold( (int32_t)value );
-  else if( isParameterName( param->name, "brightness_filter_tau" ) )
+  else if( isParameterName( param->meta.name, "brightness_filter_tau" ) )
     tracker->setBrightnessFilterTimeConstant( value );
-  else if( isParameterName( param->name, "night_threshold" ) )
+  else if( isParameterName( param->meta.name, "night_threshold" ) )
     tracker->setNightThreshold( (int32_t)value );
-  else if( isParameterName( param->name, "night_hysteresis" ) )
+  else if( isParameterName( param->meta.name, "night_hysteresis" ) )
     tracker->setNightHysteresis( value );
-  else if( isParameterName( param->name, "night_detection_time" ) )
+  else if( isParameterName( param->meta.name, "night_detection_time" ) )
     tracker->setNightDetectionTime( (unsigned long)value );
-  else if( isParameterName( param->name, "reversal_dead_time" ) )
+  else if( isParameterName( param->meta.name, "reversal_dead_time" ) )
     tracker->setReversalDeadTime( (unsigned long)value );
-  else if( isParameterName( param->name, "reversal_time_limit" ) )
+  else if( isParameterName( param->meta.name, "reversal_time_limit" ) )
     tracker->setReversalTimeLimit( (unsigned long)value );
-  else if( isParameterName( param->name, "max_reversal_tries" ) )
+  else if( isParameterName( param->meta.name, "max_reversal_tries" ) )
     tracker->setMaxReversalTries( (int)value );
-  else if( isParameterName( param->name, "default_west_enabled" ) )
+  else if( isParameterName( param->meta.name, "default_west_enabled" ) )
     tracker->setDefaultWestMovementEnabled( value != 0.0f );
-  else if( isParameterName( param->name, "default_west_time" ) )
+  else if( isParameterName( param->meta.name, "default_west_time" ) )
     tracker->setDefaultWestMovementTime( (unsigned long)value );
-  else if( isParameterName( param->name, "use_average_movement" ) )
+  else if( isParameterName( param->meta.name, "use_average_movement" ) )
     tracker->setUseAverageMovementTime( value != 0.0f );
-  else if( isParameterName( param->name, "movement_history_size" ) )
+  else if( isParameterName( param->meta.name, "movement_history_size" ) )
     tracker->setMovementHistorySize( (uint8_t)value );
-  else if( isParameterName( param->name, "motor_dead_time" ) )
+  else if( isParameterName( param->meta.name, "motor_dead_time" ) )
     motorControl->setDeadTime( (unsigned long)value );
-  else if( isParameterName( param->name, "terminal_print_period" ) )
+  else if( isParameterName( param->meta.name, "terminal_print_period" ) )
     terminal->setPrintPeriod( (unsigned long)value );
-  else if( isParameterName( param->name, "terminal_moving_period" ) )
+  else if( isParameterName( param->meta.name, "terminal_moving_period" ) )
     terminal->setMovingPrintPeriod( (unsigned long)value );
-  else if( isParameterName( param->name, "terminal_periodic_logs" ) )
+  else if( isParameterName( param->meta.name, "terminal_periodic_logs" ) )
     terminal->setPeriodicLogs( value != 0.0f );
   else
   {
@@ -336,19 +442,21 @@ bool Settings::setParameter( const char* paramName, float value )
   
   if( success )
   {
+    // Update Parameter struct and EEPROM
     updateParameterValue( paramName, value );
+    
     Serial.println();
     Serial.print( "Parameter '" );
     Serial.print( paramName );
     Serial.print( "' set to " );
-    if( param->isInteger )
+    if( param->meta.isInteger )
       Serial.print( (int)value );
     else
       Serial.print( value );
-    if( strlen( param->units ) > 0 )
+    if( strlen( param->meta.units ) > 0 )
     {
       Serial.print( " " );
-      Serial.print( param->units );
+      Serial.print( param->meta.units );
     }
     Serial.println();
   }
@@ -361,7 +469,65 @@ void Settings::updateParameterValue( const char* name, float value )
   Parameter* param = findParameter( name );
   if( param )
   {
+    // Update Parameter struct
     param->currentValue = value;
+    
+    // Save to EEPROM if enabled
+    if( saveToEeprom )
+    {
+      eeprom.saveParameter( name, value );
+    }
+  }
+}
+
+void Settings::updateModuleValues()
+{
+  // Update all modules with current parameter values
+  for( int i = 0; i < parameterCount; i++ )
+  {
+    Parameter* param = &parameters[i];
+    float value = param->currentValue;
+    
+    if( isParameterName( param->meta.name, "balance_tol" ) )
+      tracker->setTolerance( value );
+    else if( isParameterName( param->meta.name, "max_move_time" ) )
+      tracker->setMaxMovementTime( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "adjustment_period" ) )
+      tracker->setAdjustmentPeriod( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "sampling_rate" ) )
+      tracker->setSamplingRate( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "brightness_threshold" ) )
+      tracker->setBrightnessThreshold( (int32_t)value );
+    else if( isParameterName( param->meta.name, "brightness_filter_tau" ) )
+      tracker->setBrightnessFilterTimeConstant( value );
+    else if( isParameterName( param->meta.name, "night_threshold" ) )
+      tracker->setNightThreshold( (int32_t)value );
+    else if( isParameterName( param->meta.name, "night_hysteresis" ) )
+      tracker->setNightHysteresis( value );
+    else if( isParameterName( param->meta.name, "night_detection_time" ) )
+      tracker->setNightDetectionTime( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "reversal_dead_time" ) )
+      tracker->setReversalDeadTime( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "reversal_time_limit" ) )
+      tracker->setReversalTimeLimit( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "max_reversal_tries" ) )
+      tracker->setMaxReversalTries( (int)value );
+    else if( isParameterName( param->meta.name, "default_west_enabled" ) )
+      tracker->setDefaultWestMovementEnabled( value != 0.0f );
+    else if( isParameterName( param->meta.name, "default_west_time" ) )
+      tracker->setDefaultWestMovementTime( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "use_average_movement" ) )
+      tracker->setUseAverageMovementTime( value != 0.0f );
+    else if( isParameterName( param->meta.name, "movement_history_size" ) )
+      tracker->setMovementHistorySize( (uint8_t)value );
+    else if( isParameterName( param->meta.name, "motor_dead_time" ) )
+      motorControl->setDeadTime( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "terminal_print_period" ) )
+      terminal->setPrintPeriod( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "terminal_moving_period" ) )
+      terminal->setMovingPrintPeriod( (unsigned long)value );
+    else if( isParameterName( param->meta.name, "terminal_periodic_logs" ) )
+      terminal->setPeriodicLogs( value != 0.0f );
   }
 }
 
@@ -568,7 +734,7 @@ void Settings::handleParamCommand()
   int maxNameLen = 0;
   for( int i = 0; i < parameterCount; i++ )
   {
-    int nameLen = strlen( parameters[i].name );
+    int nameLen = strlen( parameters[i].meta.name );
     if( nameLen > maxNameLen )
     {
       maxNameLen = nameLen;
@@ -654,7 +820,7 @@ void Settings::printParameterWithDescription( Parameter* param )
   int maxNameLen = 0;
   for( int i = 0; i < parameterCount; i++ )
   {
-    int nameLen = strlen( parameters[i].name );
+    int nameLen = strlen( parameters[i].meta.name );
     if( nameLen > maxNameLen )
     {
       maxNameLen = nameLen;
@@ -725,7 +891,7 @@ void Settings::handleSetCommand( const char* paramName, const char* valueStr )
     int maxNameLen = 0;
     for( int i = 0; i < parameterCount; i++ )
     {
-      int nameLen = strlen( parameters[i].name );
+      int nameLen = strlen( parameters[i].meta.name );
       if( nameLen > maxNameLen )
       {
         maxNameLen = nameLen;
@@ -873,6 +1039,9 @@ void Settings::handleFactoryResetCommand()
   success &= setParameter( "terminal_print_period", TERMINAL_PRINT_PERIOD_MS );
   success &= setParameter( "terminal_moving_period", TERMINAL_MOVING_PRINT_PERIOD_MS );
   success &= setParameter( "terminal_periodic_logs", TERMINAL_ENABLE_PERIODIC_LOGS ? 1.0f : 0.0f );
+  
+  // Reset EEPROM
+  eeprom.factoryReset( this );
   
   if( success )
   {
@@ -1063,10 +1232,10 @@ void Settings::printFormattedParameterWithDescription( Parameter* param, int max
 {
   // Print parameter name
   Serial.print( "  " ); // Add 2-space indent
-  Serial.print( param->name );
+  Serial.print( param->meta.name );
   
   // Add spacing to align short name column
-  int nameLen = strlen( param->name );
+  int nameLen = strlen( param->meta.name );
   for( int i = nameLen; i < maxNameLen + 2; i++ )
   {
     Serial.print( " " );
@@ -1074,14 +1243,14 @@ void Settings::printFormattedParameterWithDescription( Parameter* param, int max
   
   // Print short name in parentheses
   Serial.print( "(" );
-  Serial.print( param->shortName );
+  Serial.print( param->meta.shortName );
   Serial.print( ")" );
   
   // Get description for this parameter
-  const char* description = getParameterDescription( param->name );
+  const char* description = getParameterDescription( param->meta.name );
   
   // Calculate spacing for description
-  int shortNameLen = strlen( param->shortName ) + 2; // +2 for "()"
+  int shortNameLen = strlen( param->meta.shortName ) + 2; // +2 for "()"
   for( int i = shortNameLen; i < 8; i++ ) // Ensure at least 8 chars for short name column
   {
     Serial.print( " " );
@@ -1094,10 +1263,10 @@ void Settings::printFormattedParameterWithValue( Parameter* param, int maxNameLe
 {
   // Print parameter name
   Serial.print( "  " ); // Add 2-space indent
-  Serial.print( param->name );
+  Serial.print( param->meta.name );
   
   // Add spacing to align short name column
-  int nameLen = strlen( param->name );
+  int nameLen = strlen( param->meta.name );
   for( int i = nameLen; i < maxNameLen + 2; i++ )
   {
     Serial.print( " " );
@@ -1105,22 +1274,22 @@ void Settings::printFormattedParameterWithValue( Parameter* param, int maxNameLe
   
   // Print short name in parentheses
   Serial.print( "(" );
-  Serial.print( param->shortName );
+  Serial.print( param->meta.shortName );
   Serial.print( ")" );
   
   // Calculate spacing for value
-  int shortNameLen = strlen( param->shortName ) + 2; // +2 for "()"
+  int shortNameLen = strlen( param->meta.shortName ) + 2; // +2 for "()"
   for( int i = shortNameLen; i < 8; i++ ) // Ensure at least 8 chars for short name column
   {
     Serial.print( " " );
   }
   
   // Print value
-  if( strlen( param->units ) == 0 && param->maxValue == 1.0f && param->minValue == 0.0f )
+  if( strlen( param->meta.units ) == 0 && param->meta.maxValue == 1.0f && param->meta.minValue == 0.0f )
   {
     Serial.print( param->currentValue != 0.0f ? "true" : "false" );
   }
-  else if( param->isInteger )
+  else if( param->meta.isInteger )
   {
     Serial.print( (int)param->currentValue );
   }
@@ -1130,11 +1299,26 @@ void Settings::printFormattedParameterWithValue( Parameter* param, int maxNameLe
   }
   
   // Print units
-  if( strlen( param->units ) > 0 )
+  if( strlen( param->meta.units ) > 0 )
   {
     Serial.print( " " );
-    Serial.print( param->units );
+    Serial.print( param->meta.units );
   }
   
   Serial.println();
+} 
+
+// Add new functions to support EEPROM integration
+Parameter* Settings::getParameter( int index )
+{
+  if( index >= 0 && index < parameterCount )
+  {
+    return &parameters[index];
+  }
+  return nullptr;
+}
+
+int Settings::getParameterCount() const
+{
+  return parameterCount;
 } 

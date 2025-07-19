@@ -12,6 +12,39 @@ A modular, object-oriented solar tracker for Arduino, using modern C++ classes a
 - **Modular design**: Each subsystem (sensors, motor, tracker, display, terminal) is encapsulated in its own class or module.
 - **Comprehensive serial logging** for monitoring and debugging.
 - **Interactive terminal interface** for monitoring and configuration.
+- **Persistent settings** stored in EEPROM, surviving power cycles and resets.
+
+---
+
+## Parameter Management
+
+### EEPROM Storage
+- All configurable parameters are stored in the Arduino's onboard EEPROM.
+- Parameters persist across power cycles and resets.
+- EEPROM validation ensures data integrity using:
+  * Version number to handle parameter layout changes
+  * Magic number to detect initialization
+  * Checksum to verify data integrity
+
+### Parameter Loading
+- On startup, the system will either:
+  * Load parameters from EEPROM if valid data is found
+  * Initialize parameters to defaults if EEPROM is invalid/uninitialized
+- A status message indicates which action was taken:
+  * "Loaded parameters from EEPROM"
+  * "Initializing parameters with defaults"
+
+### Parameter Updates
+- Parameters can be changed using the `set` command
+- Changes are immediately:
+  * Applied to the running system
+  * Saved to EEPROM for persistence
+  * Verified after writing
+
+### Factory Reset
+- The `factory_reset` command restores all parameters to defaults
+- Default values are saved to EEPROM
+- Takes effect immediately
 
 ---
 

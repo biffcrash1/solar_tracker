@@ -7,6 +7,7 @@
 #include "MotorControl.h"
 #include "Photosensor.h"
 #include "Terminal.h"
+#include "Eeprom.h"
 
 // String constants for command outputs
 #define HEADER_SEPARATOR "***************"
@@ -16,19 +17,25 @@
 #define HELP_TITLE "Help"
 #define SETTINGS_TITLE "Settings"
 
-// Parameter structure for organized parameter management
-struct Parameter
+// Parameter metadata structure
+struct ParameterMetadata
 {
   const char* name;
   const char* shortName;
   const char* units;
-  float currentValue;
   float minValue;
   float maxValue;
   bool isInteger;
   bool isTime;
   bool isPercentage;
   bool isResistance;
+};
+
+// Parameter structure for organized parameter management
+struct Parameter
+{
+  ParameterMetadata meta;  // Metadata that doesn't change
+  float currentValue;      // Current runtime value
 };
 
 class Settings
@@ -38,7 +45,8 @@ public:
   void begin( Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor, Terminal* terminal );
   
   // Parameter management
-  void refreshParameterValues();
+  void refreshParameterValues();  // Gets values from modules
+  void updateModuleValues();      // Sets values to modules
   void printParameterList();
   void printParameterWithDescription( Parameter* param );
   void printFormattedParameterWithDescription( Parameter* param, int maxNameLen );
@@ -47,6 +55,12 @@ public:
   bool setParameter( const char* paramName, float value );
   bool setParameter( const char* paramName, const char* valueStr );
   Parameter* findParameter( const char* name );
+  
+  // EEPROM support
+  Parameter* getParameter( int index );
+  int getParameterCount() const;
+  void setSaveToEeprom( bool enable ) { saveToEeprom = enable; }
+  bool getSaveToEeprom() const { return saveToEeprom; }
   
   // Validation functions
   bool validateTimeValue( float value );
@@ -84,6 +98,7 @@ private:
   static const int MAX_PARAMETERS = 20;
   Parameter parameters[MAX_PARAMETERS];
   int parameterCount;
+  bool saveToEeprom;  // Whether to save parameter changes to EEPROM
   
   // Helper functions
   void initializeParameters();

@@ -8,6 +8,7 @@
 #include "Tracker.h"
 #include "Terminal.h"
 #include "Settings.h"
+#include "Eeprom.h"
 #include <Arduino.h>
 #include <math.h>
 #include <stdint.h>
@@ -33,8 +34,8 @@ Settings settings;
 //
 //     Description:
 //     - Initializes the solar tracker system including I2C, display,
-//       graph, photosensors, motor control, tracker, terminal, and
-//       settings modules. Sets up command interface.
+//       graph, photosensors, motor control, tracker, terminal,
+//       settings, and EEPROM modules. Sets up command interface.
 //
 //***********************************************************
 void setup()
@@ -49,7 +50,10 @@ void setup()
   tracker.begin();
   terminal.begin();
   
-  // Initialize settings module and connect to terminal
+  // Initialize EEPROM first
+  eeprom.begin();
+  
+  // Initialize settings module (will use EEPROM if valid)
   settings.begin( &tracker, &motorControl, &eastSensor, &westSensor, &terminal );
   terminal.setSettings( &settings );
 }
