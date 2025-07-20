@@ -4,12 +4,12 @@
 #include <ctype.h>
 
 // Command strings stored in program memory
-static const char CMD_MEAS[] PROGMEM = "meas";
-static const char CMD_PARAM[] PROGMEM = "param";
-static const char CMD_STATUS[] PROGMEM = "status";
-static const char CMD_SET[] PROGMEM = "set";
-static const char CMD_HELP[] PROGMEM = "help";
-static const char CMD_FACTORY_RESET[] PROGMEM = "factory_reset";
+static const char CMD_IN_P[] PROGMEM = CMD_IN;
+static const char CMD_PARAM_P[] PROGMEM = CMD_PARAM;
+static const char CMD_STATUS_P[] PROGMEM = CMD_STATUS;
+static const char CMD_SET_P[] PROGMEM = CMD_SET;
+static const char CMD_HELP_P[] PROGMEM = CMD_HELP;
+static const char CMD_FACTORY_RESET_P[] PROGMEM = CMD_FACTORY_RESET;
 
 Terminal::Terminal()
     : printPeriodMs(TERMINAL_PRINT_PERIOD_MS),
@@ -159,57 +159,57 @@ void Terminal::parseCommand( const char* input, char* command, char* param1, cha
 }
 
 void Terminal::processCommand( const char* command )
-{
-    char cmd[14];     // 12 chars + null terminator + 1 extra for safety
-    char param1[5];  // 4 chars + null terminator
-    char param2[8];  // 7 chars + null terminator
-    
-    parseCommand( command, cmd, param1, param2 );
-    
-    if( strlen( cmd ) == 0 )
-    {
-        return; // Empty command
-    }
-    
-    if( !settings )
-    {
-        Serial.println();
-        Serial.println(F("ERROR: Settings module not initialized"));
-        return;
-    }
-    
-    // Handle commands
-    if( strcmp_P( cmd, CMD_MEAS ) == 0 )
-    {
-        settings->handleMeasCommand();
-    }
-    else if( strcmp_P( cmd, CMD_PARAM ) == 0 )
-    {
-        settings->handleParamCommand();
-    }
-    else if( strcmp_P( cmd, CMD_STATUS ) == 0 )
-    {
-        settings->handleStatusCommand();
-    }
-    else if( strcmp_P( cmd, CMD_SET ) == 0 )
-    {
-        settings->handleSetCommand( param1, param2 );
-    }
-    else if( strcmp_P( cmd, CMD_HELP ) == 0 )
-    {
-        settings->handleHelpCommand();
-    }
-    else if( strcmp_P( cmd, CMD_FACTORY_RESET ) == 0 )
-    {
-        settings->handleFactoryResetCommand();
-    }
-    else
-    {
-        Serial.println();
-        Serial.print(F("ERROR: Unknown command '"));
-        Serial.print( cmd );
-        Serial.println(F("'. Type 'help' for available commands."));
-    }
+{ 
+  char cmd[14];     // 12 chars + null terminator + 1 extra for safety
+  char param1[5];  // 4 chars + null terminator
+  char param2[8];  // 7 chars + null terminator
+  
+  parseCommand( command, cmd, param1, param2 );
+  
+  if( strlen( cmd ) == 0 )
+  {
+    return; // Empty command
+  }
+  
+  if( !settings )
+  {
+    Serial.println();
+    Serial.println(F("ERROR: Settings module not initialized"));
+    return;
+  }
+  
+  // Handle commands
+  if( strcmp_P( cmd, CMD_IN_P ) == 0 )
+  {
+    settings->handleMeasCommand();
+  }
+  else if( strcmp_P( cmd, CMD_PARAM_P ) == 0 )
+  {
+    settings->handleParamCommand();
+  }
+  else if( strcmp_P( cmd, CMD_STATUS_P ) == 0 )
+  {
+    settings->handleStatusCommand();
+  }
+  else if( strcmp_P( cmd, CMD_SET_P ) == 0 )
+  {
+    settings->handleSetCommand( param1, param2 );
+  }
+  else if( strcmp_P( cmd, CMD_HELP_P ) == 0 )
+  {
+    settings->handleHelpCommand();
+  }
+  else if( strcmp_P( cmd, CMD_FACTORY_RESET_P ) == 0 )
+  {
+    settings->handleFactoryResetCommand();
+  }
+  else
+  {
+    Serial.println();
+    Serial.print(F("ERROR: Unknown command '"));
+    Serial.print( cmd );
+    Serial.println(F("'. Type 'help' for available commands."));
+  }
 }
 
 void Terminal::update(Tracker* tracker, MotorControl* motorControl, PhotoSensor* eastSensor, PhotoSensor* westSensor)

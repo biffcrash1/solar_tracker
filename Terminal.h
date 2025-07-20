@@ -7,6 +7,14 @@
 #include "MotorControl.h"
 #include "Photosensor.h"
 
+// Command strings
+#define CMD_IN "in"
+#define CMD_PARAM "param"
+#define CMD_STATUS "status"
+#define CMD_SET "set"
+#define CMD_HELP "help"
+#define CMD_FACTORY_RESET "factory_reset"
+
 // Forward declaration to avoid circular dependency
 class Settings;
 

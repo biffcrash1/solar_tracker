@@ -1218,19 +1218,19 @@ void Settings::handleHelpCommand()
   Serial.println(F("AVAILABLE COMMANDS:"));
   Serial.println();
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("meas", "Display all raw and filtered measurements", 30);
+  printLeftAlignedName(CMD_IN, "Display all raw and filtered measurements", 30);
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("param", "Display all parameters and configuration", 30);
+  printLeftAlignedName(CMD_PARAM, "Display all parameters and configuration", 30);
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("status", "Display system status information", 30);
+  printLeftAlignedName(CMD_STATUS, "Display system status information", 30);
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("set", "Set parameter value (set <param> <value>)", 30);
+  printLeftAlignedName(CMD_SET, "Set parameter value (set <param> <value>)", 30);
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("set", "List all settable parameters (set with no args)", 30);
+  printLeftAlignedName(CMD_SET, "List all settable parameters (set with no args)", 30);
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("factory_reset", "Reset all parameters to default values", 30);
+  printLeftAlignedName(CMD_FACTORY_RESET, "Reset all parameters to default values", 30);
   Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("help", "Display this help message", 30);
+  printLeftAlignedName(CMD_HELP, "Display this help message", 30);
 }
 
 void Settings::handleFactoryResetCommand()

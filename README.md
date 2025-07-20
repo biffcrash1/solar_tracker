@@ -54,7 +54,7 @@ A modular, object-oriented solar tracker for Arduino, using modern C++ classes a
 The solar tracker provides an interactive terminal interface with the following commands:
 
 ### Status Commands
-- **meas**: Display all raw and filtered measurements
+- **in**: Display all raw and filtered measurements
   - Shows raw sensor values in ohms
   - Shows filtered sensor values
   - Shows calculated values (difference, tolerance)
