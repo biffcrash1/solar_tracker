@@ -57,6 +57,11 @@ The solar tracker provides an interactive terminal interface with the following 
 - **in**: Display all raw and filtered measurements
   - Shows raw sensor values in ohms
   - Shows filtered sensor values
+  - Shows average brightness EMA
+  - Shows monitor mode filtered values:
+    * East and west monitor filters
+    * Monitor mode difference
+    * Monitor mode difference percentage
   - Shows calculated values (difference, tolerance)
   - Shows balance status and brighter side
 
@@ -208,11 +213,21 @@ All configuration constants are in `param_config.h`:
   - Smooth transition back to tracking when day returns
 - **Monitor Mode Operation:**
   - Optional continuous monitoring mode (disabled by default)
+  - Dedicated EMA filters for each sensor:
+    * Separate east and west sensor filters
+    * Filters run continuously to maintain state
+    * Independent from main brightness filter
+    * Configurable time constant (120s default)
+    * Viewable in measurements display
+  - Movement decisions based on filtered values:
+    * More stable response to changing conditions
+    * Better noise immunity
+    * Reduced false triggers
   - Configurable threshold (15% default) to trigger movement
   - Minimum wait time (120s default) between movements
-  - Dedicated filter (120s default time constant) for smooth response
   - Independent from regular adjustment period timing
   - Helps track faster-moving clouds and changing conditions
+  - Uses filtered values for overshoot detection when triggered by monitor mode
 
 - **Adjustment Timing:**
   - Two independent timing systems:

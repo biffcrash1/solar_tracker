@@ -67,6 +67,8 @@ public:
   float getStartMoveThreshold() const { return startMoveThresholdPercent; }
   unsigned long getMinWaitTime() const { return minWaitTimeMs / 1000UL; }
   float getMonitorFilterTimeConstant() const { return monitorFilterTimeConstantS; }
+  float getMonitorFilteredEast() const { return monitorFilteredEast; }
+  float getMonitorFilteredWest() const { return monitorFilteredWest; }
 
   // Status
   State getState() const;
@@ -139,6 +141,9 @@ private:
   float startMoveThresholdPercent;  // Percentage difference threshold to trigger movement
   unsigned long minWaitTimeMs;      // Minimum time between monitor mode movements
   float monitorFilterTimeConstantS; // Time constant for monitor mode filter
+  float monitorFilteredEast;        // Monitor mode filtered east sensor value
+  float monitorFilteredWest;        // Monitor mode filtered west sensor value
+  unsigned long lastMonitorSampleTime; // Last time monitor filters were updated
 
   // Timing
   unsigned long lastAdjustmentTime;

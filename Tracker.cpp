@@ -52,7 +52,10 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     initialWestValue(0.0f),
     initialDiff(0.0f),
     movementDirectionSet(false),
-    movingEast(false)
+    movingEast(false),
+    monitorFilteredEast(0.0f),  // Initialize monitor mode filter values
+    monitorFilteredWest(0.0f),
+    lastMonitorSampleTime(0)
 {
   initializeMovementHistory();
 }
@@ -64,6 +67,7 @@ void Tracker::begin()
   lastSamplingTime = currentTime;
   lastStateChangeTime = currentTime;
   lastDayNightTransitionTime = currentTime;
+  lastMonitorSampleTime = currentTime;
   lastMovementDuration = 0;
   state = IDLE;
   reversalTries = 0;
@@ -76,6 +80,8 @@ void Tracker::begin()
   dayModeStartTime = 0;
   movementHistoryIndex = 0;
   movementHistoryCount = 0;
+  monitorFilteredEast = eastSensor->getValue();  // Initialize monitor filters
+  monitorFilteredWest = westSensor->getValue();
 }
 
 void Tracker::initializeMovementHistory()
@@ -168,6 +174,30 @@ void Tracker::update()
     if( filteredBrightness < 0.0f ) filteredBrightness = 0.0f;
   }
 
+  // Update monitor mode filters - always run to maintain filter state
+  if( lastMonitorSampleTime == 0 )
+  {
+    // Initialize monitor filters with first sample
+    monitorFilteredEast = eastValue;
+    monitorFilteredWest = westValue;
+    lastMonitorSampleTime = currentTime;
+  }
+  else if( currentTime != lastMonitorSampleTime )
+  {
+    float dt = ( currentTime - lastMonitorSampleTime ) / 1000.0f;
+    lastMonitorSampleTime = currentTime;
+    float alpha = monitorFilterTimeConstantS > 0 ? dt / monitorFilterTimeConstantS : 1.0f;
+    if( alpha > 1.0f ) alpha = 1.0f;
+
+    // Update east sensor monitor filter
+    monitorFilteredEast += ( alpha * ( eastValue - monitorFilteredEast ));
+    if( monitorFilteredEast < 0.0f ) monitorFilteredEast = 0.0f;
+
+    // Update west sensor monitor filter
+    monitorFilteredWest += ( alpha * ( westValue - monitorFilteredWest ));
+    if( monitorFilteredWest < 0.0f ) monitorFilteredWest = 0.0f;
+  }
+
   switch( state )
   {
     case IDLE:
@@ -197,8 +227,30 @@ void Tracker::update()
         nightConditionMet = false;
         nightModeStartTime = 0;
       }
-      // Check if it's time for an adjustment
-      if( currentTime - lastAdjustmentTime >= adjustmentPeriodMs )
+
+      // Check conditions for entering ADJUSTING state
+      bool shouldAdjust = false;
+      bool isMonitorTriggered = false;
+
+      // Monitor mode check (if enabled and not in night mode)
+      if( monitorModeEnabled && filteredBrightness < brightnessThresholdOhms )
+      {
+        // Calculate monitor mode difference percentage
+        float lowerValue = (( monitorFilteredEast < monitorFilteredWest ) ? 
+                            monitorFilteredEast : monitorFilteredWest );
+        float diffPercent = ( abs( monitorFilteredEast - monitorFilteredWest ) / lowerValue ) * 100.0f;
+        
+        // Check if difference exceeds threshold and minimum wait time has elapsed
+        if( diffPercent > startMoveThresholdPercent && 
+            currentTime - lastAdjustmentTime >= minWaitTimeMs )
+        {
+          shouldAdjust = true;
+          isMonitorTriggered = true;
+        }
+      }
+      
+      // Regular adjustment period check (if not in monitor mode or monitor didn't trigger)
+      if( !shouldAdjust && currentTime - lastAdjustmentTime >= adjustmentPeriodMs )
       {
         if( filteredBrightness >= brightnessThresholdOhms )
         {
@@ -227,16 +279,32 @@ void Tracker::update()
         }
         else
         {
-          changeState( ADJUSTING );
-          lastSamplingTime = currentTime;
-          movementStartTime = currentTime;
-          lastAdjustmentTime = currentTime;  // Start timing from when adjustment begins
-          // Store initial sensor values for overshoot detection
+          shouldAdjust = true;
+        }
+      }
+
+      // Enter ADJUSTING state if needed
+      if( shouldAdjust )
+      {
+        changeState( ADJUSTING );
+        lastSamplingTime = currentTime;
+        movementStartTime = currentTime;
+        lastAdjustmentTime = currentTime;  // Start timing from when adjustment begins
+        
+        // Store initial sensor values for overshoot detection
+        // Use monitor filtered values if monitor mode triggered the adjustment
+        if( isMonitorTriggered )
+        {
+          initialEastValue = monitorFilteredEast;
+          initialWestValue = monitorFilteredWest;
+        }
+        else
+        {
           initialEastValue = eastSensor->getFilteredValue();
           initialWestValue = westSensor->getFilteredValue();
-          initialDiff = initialEastValue - initialWestValue;
-          movementDirectionSet = false;
         }
+        initialDiff = initialEastValue - initialWestValue;
+        movementDirectionSet = false;
       }
       break;
 

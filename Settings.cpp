@@ -1,5 +1,4 @@
- 
- #include "Settings.h"
+#include "Settings.h"
 #include "Eeprom.h"
 #include <string.h>
 #include <ctype.h>
@@ -11,6 +10,7 @@ static const char PARAMETERS_TITLE[] PROGMEM = "PARAMETERS";
 static const char MEASUREMENTS_TITLE[] PROGMEM = "MEASUREMENTS";
 static const char HELP_TITLE[] PROGMEM = "HELP";
 static const char STATUS_TITLE[] PROGMEM = "STATUS";
+static const char FACTORY_RESET_TITLE[] PROGMEM = "FACTORY RESET";
 
 // Parameter descriptions stored in program memory
 static const char DESC_BALANCE_TOL[] PROGMEM = "Tolerance percentage for sensor balance detection";
@@ -51,6 +51,7 @@ static const char SECTION_CALCULATED[] PROGMEM = "CALCULATED VALUES:";
 static const char SECTION_BALANCE[] PROGMEM = "BALANCE STATUS:";
 static const char SECTION_SYSTEM[] PROGMEM = "SYSTEM STATE:";
 static const char SECTION_TIMING[] PROGMEM = "TIMING INFORMATION:";
+static const char SECTION_DEFAULT_WEST[] PROGMEM = "DEFAULT WEST MOVEMENT:";
 
 Settings::Settings()
   : tracker( nullptr ),
@@ -689,12 +690,11 @@ void Settings::updateModuleValues()
 void Settings::printHeader( const char* title )
 {
   Serial.println();
-  const char* separator = PSTR("================");
   const char* space = PSTR(" ");
   
   // Print separator
   char c;
-  const char* p = separator;
+  const char* p = HEADER_SEPARATOR;
   while((c = pgm_read_byte_near(p++)))
     Serial.print(c);
   
@@ -703,8 +703,10 @@ void Settings::printHeader( const char* title )
   while((c = pgm_read_byte_near(p++)))
     Serial.print(c);
   
-  // Print title
-  Serial.print(title);
+  // Print title from PROGMEM
+  p = title;
+  while((c = pgm_read_byte_near(p++)))
+    Serial.print(c);
   
   // Print space
   p = space;
@@ -712,7 +714,7 @@ void Settings::printHeader( const char* title )
     Serial.print(c);
   
   // Print separator
-  p = separator;
+  p = HEADER_SEPARATOR;
   while((c = pgm_read_byte_near(p++)))
     Serial.print(c);
   
@@ -858,7 +860,7 @@ void Settings::printLeftAlignedName( const char* label, bool value, int labelWid
 
 void Settings::handleMeasCommand()
 {
-  printHeader(PSTR("MEASUREMENTS"));
+  printHeader(MEASUREMENTS_TITLE);
   
   // Raw sensor values
   Serial.println(F("RAW SENSOR VALUES:"));
@@ -869,26 +871,49 @@ void Settings::handleMeasCommand()
   
   Serial.println();
   Serial.println(F("FILTERED SENSOR VALUES:"));
-  Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("East Filtered", eastSensor->getFilteredValue(), "ohms", 30);
-  Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("West Filtered", westSensor->getFilteredValue(), "ohms", 30);
-  Serial.print(F("  ")); // Add 2-space indent
-  printLeftAlignedName("Average Brightness EMA", tracker->getFilteredBrightness(), "ohms", 30);
-  
-  Serial.println();
-  Serial.println(F("CALCULATED VALUES:"));
   float eastFiltered = eastSensor->getFilteredValue();
   float westFiltered = westSensor->getFilteredValue();
   float difference = abs(eastFiltered - westFiltered);
   float lowerValue = (eastFiltered < westFiltered) ? eastFiltered : westFiltered;
   float tolerance = (lowerValue * TRACKER_TOLERANCE_PERCENT / 100.0f);
-  
+ 
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("East Filtered", eastFiltered, "ohms", 30);
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("West Filtered", westFiltered, "ohms", 30);
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("Average Brightness EMA", tracker->getFilteredBrightness(), "ohms", 30);
   Serial.print(F("  ")); // Add 2-space indent
   printLeftAlignedName("Sensor Difference", difference, "ohms", 30);
   Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("Difference Pct", (difference / lowerValue) * 100.0f, "%", 30);
+  Serial.print(F("  ")); // Add 2-space indent
   printLeftAlignedName("Current Tolerance", tolerance, "ohms", 30);
-  
+ 
+  Serial.println();
+  Serial.println(F("MONITOR FILTERED VALUES:"));
+  float monitorEast = tracker->getMonitorFilteredEast();
+  float monitorWest = tracker->getMonitorFilteredWest();
+  float monitorDiff = abs(monitorEast - monitorWest);
+  float monitorLower = (monitorEast < monitorWest) ? monitorEast : monitorWest;
+  float monitorDiffPercent = (monitorDiff / monitorLower) * 100.0f;
+
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("East Monitor", monitorEast, "ohms", 30);
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("West Monitor", monitorWest, "ohms", 30);
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("Monitor Difference", monitorDiff, "ohms", 30);
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("Monitor Difference Pct", monitorDiffPercent, "%", 30);
+
+  Serial.println();
+  Serial.println(F("DEFAULT WEST MOVEMENT:"));
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("Default West Enabled", tracker->getDefaultWestMovementEnabled(), 30);
+  Serial.print(F("  ")); // Add 2-space indent
+  printLeftAlignedName("Default West Time", tracker->getDefaultWestMovementTime(), "ms", 30);
+
   Serial.println();
   Serial.println(F("BALANCE STATUS:"));
   bool isBalanced = (difference <= tolerance);
@@ -904,113 +929,7 @@ void Settings::handleMeasCommand()
 
 void Settings::handleParamCommand()
 {
-  printHeader(PSTR("PARAMETERS"));
-  
-  refreshParameterValues();
-  
-  // Find longest parameter name for alignment
-  int maxNameLen = 0;
-  for(int i = 0; i < parameterCount; i++)
-  {
-    int nameLen = strlen(parameters[i].meta.name);
-    if(nameLen > maxNameLen)
-    {
-      maxNameLen = nameLen;
-    }
-  }
-  
-  // Group parameters by module
-  Serial.println(F("SENSOR PARAMETERS:"));
-  const char* sensorParams[] = { 
-    "brightness_threshold",
-    "brightness_filter_tau",
-    "night_threshold",
-    "night_hysteresis",
-    "night_detection_time",
-    "sampling_rate"
-  };
-  
-  for(size_t i = 0; i < sizeof(sensorParams) / sizeof(sensorParams[0]); i++)
-  {
-    Parameter* param = findParameter(sensorParams[i]);
-    if(param)
-    {
-      printFormattedParameterWithDescription(param, maxNameLen);
-    }
-  }
-  
-  Serial.println();
-  Serial.println(F("TRACKER PARAMETERS:"));
-  const char* trackerParams[] = { 
-    "balance_tol",
-    "max_move_time",
-    "adjustment_period",
-    "reversal_dead_time",
-    "reversal_time_limit",
-    "max_reversal_tries",
-    "default_west_enabled",
-    "default_west_time",
-    "use_average_movement",
-    "movement_history_size"
-  };
-  
-  for(size_t i = 0; i < sizeof(trackerParams) / sizeof(trackerParams[0]); i++)
-  {
-    Parameter* param = findParameter(trackerParams[i]);
-    if(param)
-    {
-      printFormattedParameterWithDescription(param, maxNameLen);
-    }
-  }
-  
-  Serial.println();
-  Serial.println(F("MONITOR MODE PARAMETERS:"));
-  const char* monitorParams[] = {
-    "monitor_mode",
-    "start_move_thresh",
-    "min_wait",
-    "monitor_filt_tau"
-  };
-  
-  for(size_t i = 0; i < sizeof(monitorParams) / sizeof(monitorParams[0]); i++)
-  {
-    Parameter* param = findParameter(monitorParams[i]);
-    if(param)
-    {
-      printFormattedParameterWithDescription(param, maxNameLen);
-    }
-  }
-  
-  Serial.println();
-  Serial.println(F("MOTOR PARAMETERS:"));
-  const char* motorParams[] = { "motor_dead_time" };
-  
-  for(size_t i = 0; i < sizeof(motorParams) / sizeof(motorParams[0]); i++)
-  {
-    Parameter* param = findParameter(motorParams[i]);
-    if(param)
-    {
-      printFormattedParameterWithDescription(param, maxNameLen);
-    }
-  }
-  
-  Serial.println();
-  Serial.println(F("TERMINAL PARAMETERS:"));
-  const char* terminalParams[] = { 
-    "terminal_print_period", 
-    "terminal_moving_period", 
-    "terminal_periodic_logs",
-    "terminal_log_only_moving"
-  };
-  
-  for(size_t i = 0; i < sizeof(terminalParams) / sizeof(terminalParams[0]); i++)
-  {
-    Parameter* param = findParameter(terminalParams[i]);
-    if(param)
-    {
-      printFormattedParameterWithDescription(param, maxNameLen);
-    }
-  }
+  printParameterList();
 }
 
 
@@ -1091,7 +1010,7 @@ void Settings::handleSetCommand( const char* paramName, const char* valueStr )
 {
   if(paramName == nullptr || strlen(paramName) == 0)
   {
-    printHeader(PSTR("SETTINGS"));
+    printHeader(SETTINGS_TITLE);
     
     Serial.println(F("Available parameters (short name in parentheses):"));
     Serial.println();
@@ -1137,16 +1056,30 @@ void Settings::handleSetCommand( const char* paramName, const char* valueStr )
       "adjustment_period",
       "reversal_dead_time",
       "reversal_time_limit",
-      "max_reversal_tries",
+      "max_reversal_tries"
+    };
+    
+    for(size_t i = 0; i < sizeof(trackerParams) / sizeof(trackerParams[0]); i++)
+    {
+      Parameter* param = findParameter(trackerParams[i]);
+      if(param)
+      {
+        printFormattedParameterWithValue(param, maxNameLen);
+      }
+    }
+    
+    Serial.println();
+    Serial.println(F("DEFAULT WEST MOVEMENT PARAMETERS:"));
+    const char* defaultWestParams[] = {
       "default_west_enabled",
       "default_west_time",
       "use_average_movement",
       "movement_history_size"
     };
     
-    for(size_t i = 0; i < sizeof(trackerParams) / sizeof(trackerParams[0]); i++)
+    for(size_t i = 0; i < sizeof(defaultWestParams) / sizeof(defaultWestParams[0]); i++)
     {
-      Parameter* param = findParameter(trackerParams[i]);
+      Parameter* param = findParameter(defaultWestParams[i]);
       if(param)
       {
         printFormattedParameterWithValue(param, maxNameLen);
@@ -1186,7 +1119,12 @@ void Settings::handleSetCommand( const char* paramName, const char* valueStr )
     
     Serial.println();
     Serial.println(F("TERMINAL PARAMETERS:"));
-    const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs", "terminal_log_only_moving" };
+    const char* terminalParams[] = { 
+      "terminal_print_period", 
+      "terminal_moving_period", 
+      "terminal_periodic_logs",
+      "terminal_log_only_moving"
+    };
     
     for(size_t i = 0; i < sizeof(terminalParams) / sizeof(terminalParams[0]); i++)
     {
@@ -1213,7 +1151,7 @@ void Settings::handleSetCommand( const char* paramName, const char* valueStr )
 
 void Settings::handleHelpCommand()
 {
-  printHeader(PSTR("HELP"));
+  printHeader(HELP_TITLE);
   
   Serial.println(F("AVAILABLE COMMANDS:"));
   Serial.println();
@@ -1235,7 +1173,7 @@ void Settings::handleHelpCommand()
 
 void Settings::handleFactoryResetCommand()
 {
-  printHeader(PSTR("FACTORY RESET"));
+  printHeader(FACTORY_RESET_TITLE);
   
   Serial.println(F("Resetting all parameters to default values..."));
   Serial.println();
@@ -1293,7 +1231,7 @@ void Settings::handleFactoryResetCommand()
 
 void Settings::handleStatusCommand()
 {
-  printHeader(PSTR("STATUS"));
+  printHeader(STATUS_TITLE);
   
   // System state
   Serial.println(F("SYSTEM STATE:"));
@@ -1386,7 +1324,7 @@ void Settings::formatTime( unsigned long ms, char* buffer )
 
 void Settings::printParameterList()
 {
-  printHeader(PSTR("SETTINGS"));
+  printHeader(SETTINGS_TITLE);
   
   Serial.println(F("Available parameters (short name in parentheses):"));
   Serial.println();
@@ -1432,16 +1370,48 @@ void Settings::printParameterList()
     "adjustment_period",
     "reversal_dead_time",
     "reversal_time_limit",
-    "max_reversal_tries",
+    "max_reversal_tries"
+  };
+  
+  for(size_t i = 0; i < sizeof(trackerParams) / sizeof(trackerParams[0]); i++)
+  {
+    Parameter* param = findParameter(trackerParams[i]);
+    if(param)
+    {
+      printParameterWithDescription(param);
+    }
+  }
+  
+  Serial.println();
+  Serial.println(F("DEFAULT WEST MOVEMENT PARAMETERS:"));
+  const char* defaultWestParams[] = {
     "default_west_enabled",
     "default_west_time",
     "use_average_movement",
     "movement_history_size"
   };
   
-  for(size_t i = 0; i < sizeof(trackerParams) / sizeof(trackerParams[0]); i++)
+  for(size_t i = 0; i < sizeof(defaultWestParams) / sizeof(defaultWestParams[0]); i++)
   {
-    Parameter* param = findParameter(trackerParams[i]);
+    Parameter* param = findParameter(defaultWestParams[i]);
+    if(param)
+    {
+      printParameterWithDescription(param);
+    }
+  }
+  
+  Serial.println();
+  Serial.println(F("MONITOR MODE PARAMETERS:"));
+  const char* monitorParams[] = {
+    "monitor_mode",
+    "start_move_thresh",
+    "min_wait",
+    "monitor_filt_tau"
+  };
+  
+  for(size_t i = 0; i < sizeof(monitorParams) / sizeof(monitorParams[0]); i++)
+  {
+    Parameter* param = findParameter(monitorParams[i]);
     if(param)
     {
       printParameterWithDescription(param);
@@ -1463,7 +1433,12 @@ void Settings::printParameterList()
   
   Serial.println();
   Serial.println(F("TERMINAL PARAMETERS:"));
-  const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs", "terminal_log_only_moving" };
+  const char* terminalParams[] = { 
+    "terminal_print_period", 
+    "terminal_moving_period", 
+    "terminal_periodic_logs",
+    "terminal_log_only_moving"
+  };
   
   for(size_t i = 0; i < sizeof(terminalParams) / sizeof(terminalParams[0]); i++)
   {
