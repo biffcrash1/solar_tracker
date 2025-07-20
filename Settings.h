@@ -54,6 +54,7 @@ private:
   static const int MAX_PARAMETERS = 32;
   Parameter parameters[MAX_PARAMETERS];
   int parameterCount;
+  bool shortNameOnly;  // Added to control parameter name lookup behavior
   
   // Module references
   Tracker* tracker;

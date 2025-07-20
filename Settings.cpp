@@ -37,6 +37,7 @@ static const char DESC_MOTOR_DEAD_TIME[] PROGMEM = "Delay between motor directio
 static const char DESC_TERMINAL_PRINT_PERIOD[] PROGMEM = "Period between terminal status updates";
 static const char DESC_TERMINAL_MOVING_PERIOD[] PROGMEM = "Period between terminal updates during movement";
 static const char DESC_TERMINAL_PERIODIC_LOGS[] PROGMEM = "Enable periodic logging to terminal";
+static const char DESC_TERMINAL_LOG_ONLY_MOVING[] PROGMEM = "Only log sensor data while motor is moving";
 
 // Section headers stored in program memory
 static const char SECTION_SENSOR[] PROGMEM = "SENSOR PARAMETERS:";
@@ -58,7 +59,8 @@ Settings::Settings()
     westSensor( nullptr ),
     terminal( nullptr ),
     parameterCount( 0 ),
-    saveToEeprom( true )  // Default to saving to EEPROM
+    saveToEeprom( true ),  // Default to saving to EEPROM
+    shortNameOnly( true )  // Default to short names only for set command
 {
 }
 
@@ -106,7 +108,8 @@ void Settings::begin( Tracker* tracker, MotorControl* motorControl, PhotoSensor*
     // Terminal parameters
     { "terminal_print_period", "tpp", "ms", 100.0f, 60000.0f, true, false, false, false },
     { "terminal_moving_period", "tmp", "ms", 50.0f, 60000.0f, true, false, false, false },
-    { "terminal_periodic_logs", "tpl", "", 0.0f, 1.0f, true, false, false, false }
+    { "terminal_periodic_logs", "tpl", "", 0.0f, 1.0f, true, false, false, false },
+    { "terminal_log_only_moving", "tlm", "", 0.0f, 1.0f, true, false, false, false }
   };
   
   // Initialize parameter metadata
@@ -167,7 +170,8 @@ void Settings::initializeParameters()
     // Terminal parameters
     { "terminal_print_period", "tpp", "ms", 100.0f, 60000.0f, true, false, false, false },
     { "terminal_moving_period", "tmp", "ms", 50.0f, 60000.0f, true, false, false, false },
-    { "terminal_periodic_logs", "tpl", "", 0.0f, 1.0f, true, false, false, false }
+    { "terminal_periodic_logs", "tpl", "", 0.0f, 1.0f, true, false, false, false },
+    { "terminal_log_only_moving", "tlm", "", 0.0f, 1.0f, true, false, false, false }
   };
   
   // Initialize parameters with metadata and default values
@@ -224,6 +228,8 @@ void Settings::initializeParameters()
       parameters[parameterCount].currentValue = TERMINAL_MOVING_PRINT_PERIOD_MS;
     else if( isParameterName( metadata[i].name, "terminal_periodic_logs" ) )
       parameters[parameterCount].currentValue = TERMINAL_ENABLE_PERIODIC_LOGS ? 1.0f : 0.0f;
+    else if( isParameterName( metadata[i].name, "terminal_log_only_moving" ) )
+      parameters[parameterCount].currentValue = TERMINAL_LOG_ONLY_WHILE_MOVING ? 1.0f : 0.0f;
     
     parameterCount++;
   }
@@ -272,6 +278,14 @@ float Settings::getCurrentParameterValue( const char* name )
     return tracker->getUseAverageMovementTime() ? 1.0f : 0.0f;
   else if( isParameterName( name, "movement_history_size" ) )
     return tracker->getMovementHistorySize();
+  else if( isParameterName( name, "monitor_mode" ) )
+    return tracker->getMonitorModeEnabled() ? 1.0f : 0.0f;
+  else if( isParameterName( name, "start_move_thresh" ) )
+    return tracker->getStartMoveThreshold();
+  else if( isParameterName( name, "min_wait" ) )
+    return tracker->getMinWaitTime();
+  else if( isParameterName( name, "monitor_filt_tau" ) )
+    return tracker->getMonitorFilterTimeConstant();
   else if( isParameterName( name, "motor_dead_time" ) )
     return motorControl->getDeadTime();
   else if( isParameterName( name, "terminal_print_period" ) )
@@ -280,6 +294,8 @@ float Settings::getCurrentParameterValue( const char* name )
     return terminal->getMovingPrintPeriod();
   else if( isParameterName( name, "terminal_periodic_logs" ) )
     return terminal->getPeriodicLogs() ? 1.0f : 0.0f;
+  else if( isParameterName( name, "terminal_log_only_moving" ) )
+    return terminal->getLogOnlyWhileMoving() ? 1.0f : 0.0f;
   
   return 0.0f;
 }
@@ -433,6 +449,23 @@ bool Settings::setParameter( const char* paramName, const char* valueStr )
       }
       return setParameter( paramName, boolValue ? 1.0f : 0.0f );
     }
+    
+    // Handle large integer values (like resistance values)
+    if( isParameterName( param->meta.name, "night_threshold" ) ||
+        isParameterName( param->meta.name, "brightness_threshold" ) )
+    {
+      char* endPtr;
+      long value = strtol( valueStr, &endPtr, 10 );
+      if( *endPtr != '\0' )
+      {
+        Serial.println();
+        Serial.print( "ERROR: Invalid integer value for parameter '" );
+        Serial.print( paramName );
+        Serial.println( "'" );
+        return false;
+      }
+      return setParameter( paramName, (float)value );
+    }
   }
   
   float value = atof( valueStr );
@@ -441,14 +474,26 @@ bool Settings::setParameter( const char* paramName, const char* valueStr )
 
 bool Settings::setParameter( const char* paramName, float value )
 {
-  // For set command, only look up by short name
+  // Look up parameter based on shortNameOnly flag
   Parameter* param = nullptr;
   for( int i = 0; i < parameterCount; i++ )
   {
-    if( isParameterName( paramName, parameters[i].meta.shortName ) )
+    if( shortNameOnly )
     {
-      param = &parameters[i];
-      break;
+      if( isParameterName( paramName, parameters[i].meta.shortName ) )
+      {
+        param = &parameters[i];
+        break;
+      }
+    }
+    else
+    {
+      if( isParameterName( paramName, parameters[i].meta.name ) || 
+          isParameterName( paramName, parameters[i].meta.shortName ) )
+      {
+        param = &parameters[i];
+        break;
+      }
     }
   }
   
@@ -517,6 +562,8 @@ bool Settings::setParameter( const char* paramName, float value )
     terminal->setMovingPrintPeriod( (unsigned long)value );
   else if( isParameterName( param->meta.name, "terminal_periodic_logs" ) )
     terminal->setPeriodicLogs( value != 0.0f );
+  else if( isParameterName( param->meta.name, "terminal_log_only_moving" ) )
+    terminal->setLogOnlyWhileMoving( value != 0.0f );
   else
   {
     Serial.println();
@@ -535,10 +582,22 @@ bool Settings::setParameter( const char* paramName, float value )
     Serial.print( "Parameter '" );
     Serial.print( param->meta.name );
     Serial.print( "' set to " );
-    if( param->meta.isInteger )
+    
+    // Special handling for large integer values
+    if( isParameterName( param->meta.name, "night_threshold" ) ||
+        isParameterName( param->meta.name, "brightness_threshold" ) )
+    {
+      Serial.print( (int32_t)value );
+    }
+    else if( param->meta.isInteger )
+    {
       Serial.print( (int)value );
+    }
     else
+    {
       Serial.print( value );
+    }
+    
     if( strlen( param->meta.units ) > 0 )
     {
       Serial.print( " " );
@@ -622,6 +681,8 @@ void Settings::updateModuleValues()
       terminal->setMovingPrintPeriod( (unsigned long)value );
     else if( isParameterName( param->meta.name, "terminal_periodic_logs" ) )
       terminal->setPeriodicLogs( value != 0.0f );
+    else if( isParameterName( param->meta.name, "terminal_log_only_moving" ) )
+      terminal->setLogOnlyWhileMoving( value != 0.0f );
   }
 }
 
@@ -935,7 +996,12 @@ void Settings::handleParamCommand()
   
   Serial.println();
   Serial.println(F("TERMINAL PARAMETERS:"));
-  const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs" };
+  const char* terminalParams[] = { 
+    "terminal_print_period", 
+    "terminal_moving_period", 
+    "terminal_periodic_logs",
+    "terminal_log_only_moving"
+  };
   
   for(size_t i = 0; i < sizeof(terminalParams) / sizeof(terminalParams[0]); i++)
   {
@@ -1015,8 +1081,10 @@ const char* Settings::getParameterDescription( const char* paramName )
     return DESC_TERMINAL_MOVING_PERIOD;
   else if( isParameterName( paramName, "terminal_periodic_logs" ) )
     return DESC_TERMINAL_PERIODIC_LOGS;
+  else if( isParameterName( paramName, "terminal_log_only_moving" ) )
+    return DESC_TERMINAL_LOG_ONLY_MOVING;
   
-  return "";
+  return PSTR("");
 }
 
 void Settings::handleSetCommand( const char* paramName, const char* valueStr )
@@ -1118,7 +1186,7 @@ void Settings::handleSetCommand( const char* paramName, const char* valueStr )
     
     Serial.println();
     Serial.println(F("TERMINAL PARAMETERS:"));
-    const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs" };
+    const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs", "terminal_log_only_moving" };
     
     for(size_t i = 0; i < sizeof(terminalParams) / sizeof(terminalParams[0]); i++)
     {
@@ -1176,36 +1244,37 @@ void Settings::handleFactoryResetCommand()
   bool success = true;
   
   // Tracker parameters
-  success &= setParameter("balance_tol", TRACKER_TOLERANCE_PERCENT);
-  success &= setParameter("max_move_time", TRACKER_MAX_MOVEMENT_TIME_SECONDS);
-  success &= setParameter("adjustment_period", TRACKER_ADJUSTMENT_PERIOD_SECONDS);
-  success &= setParameter("sampling_rate", TRACKER_SAMPLING_RATE_MS);
-  success &= setParameter("brightness_threshold", TRACKER_BRIGHTNESS_THRESHOLD_OHMS);
-  success &= setParameter("brightness_filter_tau", TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S);
-  success &= setParameter("night_threshold", TRACKER_NIGHT_THRESHOLD_OHMS);
-  success &= setParameter("night_hysteresis", TRACKER_NIGHT_HYSTERESIS_PERCENT);
-  success &= setParameter("night_detection_time", TRACKER_NIGHT_DETECTION_TIME_SECONDS);
-  success &= setParameter("reversal_dead_time", 1000.0f); // Default value
-  success &= setParameter("reversal_time_limit", TRACKER_REVERSAL_TIME_LIMIT_MS);
-  success &= setParameter("max_reversal_tries", 3.0f); // Default value
-  success &= setParameter("default_west_enabled", TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT ? 1.0f : 0.0f);
-  success &= setParameter("default_west_time", TRACKER_DEFAULT_WEST_MOVEMENT_MS);
-  success &= setParameter("use_average_movement", TRACKER_USE_AVERAGE_MOVEMENT_TIME ? 1.0f : 0.0f);
-  success &= setParameter("movement_history_size", TRACKER_MOVEMENT_HISTORY_SIZE);
+  success &= setParameter("tol", TRACKER_TOLERANCE_PERCENT);
+  success &= setParameter("mmt", TRACKER_MAX_MOVEMENT_TIME_SECONDS);
+  success &= setParameter("adjp", TRACKER_ADJUSTMENT_PERIOD_SECONDS);
+  success &= setParameter("samp", TRACKER_SAMPLING_RATE_MS);
+  success &= setParameter("bth", TRACKER_BRIGHTNESS_THRESHOLD_OHMS);
+  success &= setParameter("bft", TRACKER_BRIGHTNESS_FILTER_TIME_CONSTANT_S);
+  success &= setParameter("nth", TRACKER_NIGHT_THRESHOLD_OHMS);
+  success &= setParameter("nhys", TRACKER_NIGHT_HYSTERESIS_PERCENT);
+  success &= setParameter("ndt", TRACKER_NIGHT_DETECTION_TIME_SECONDS);
+  success &= setParameter("rdt", 1000.0f); // Default value
+  success &= setParameter("rtl", TRACKER_REVERSAL_TIME_LIMIT_MS);
+  success &= setParameter("mrt", 3.0f); // Default value
+  success &= setParameter("dwe", TRACKER_ENABLE_DEFAULT_WEST_MOVEMENT ? 1.0f : 0.0f);
+  success &= setParameter("dwt", TRACKER_DEFAULT_WEST_MOVEMENT_MS);
+  success &= setParameter("uam", TRACKER_USE_AVERAGE_MOVEMENT_TIME ? 1.0f : 0.0f);
+  success &= setParameter("mhs", TRACKER_MOVEMENT_HISTORY_SIZE);
   
   // Monitor mode parameters
-  success &= setParameter("monitor_mode", TRACKER_MONITOR_MODE_ENABLED ? 1.0f : 0.0f);
-  success &= setParameter("start_move_thresh", TRACKER_START_MOVE_THRESHOLD_PERCENT);
-  success &= setParameter("min_wait", TRACKER_MIN_WAIT_TIME_SECONDS);
-  success &= setParameter("monitor_filt_tau", TRACKER_MONITOR_FILTER_TIME_CONSTANT_S);
+  success &= setParameter("mon", TRACKER_MONITOR_MODE_ENABLED ? 1.0f : 0.0f);
+  success &= setParameter("smt", TRACKER_START_MOVE_THRESHOLD_PERCENT);
+  success &= setParameter("mwt", TRACKER_MIN_WAIT_TIME_SECONDS);
+  success &= setParameter("mft", TRACKER_MONITOR_FILTER_TIME_CONSTANT_S);
   
   // Motor parameters
-  success &= setParameter("motor_dead_time", MOTOR_DEAD_TIME_MS);
+  success &= setParameter("mdt", MOTOR_DEAD_TIME_MS);
   
   // Terminal parameters
-  success &= setParameter("terminal_print_period", TERMINAL_PRINT_PERIOD_MS);
-  success &= setParameter("terminal_moving_period", TERMINAL_MOVING_PRINT_PERIOD_MS);
-  success &= setParameter("terminal_periodic_logs", TERMINAL_ENABLE_PERIODIC_LOGS ? 1.0f : 0.0f);
+  success &= setParameter("tpp", TERMINAL_PRINT_PERIOD_MS);
+  success &= setParameter("tmp", TERMINAL_MOVING_PRINT_PERIOD_MS);
+  success &= setParameter("tpl", TERMINAL_ENABLE_PERIODIC_LOGS ? 1.0f : 0.0f);
+  success &= setParameter("tlm", TERMINAL_LOG_ONLY_WHILE_MOVING ? 1.0f : 0.0f);
   
   // Reset EEPROM
   eeprom.factoryReset(this);
@@ -1394,7 +1463,7 @@ void Settings::printParameterList()
   
   Serial.println();
   Serial.println(F("TERMINAL PARAMETERS:"));
-  const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs" };
+  const char* terminalParams[] = { "terminal_print_period", "terminal_moving_period", "terminal_periodic_logs", "terminal_log_only_moving" };
   
   for(size_t i = 0; i < sizeof(terminalParams) / sizeof(terminalParams[0]); i++)
   {
@@ -1434,7 +1503,13 @@ void Settings::printFormattedParameterWithDescription( Parameter* param, int max
     Serial.print( " " );
   }
   
-  Serial.println( description );
+  // Print description from PROGMEM
+  char c;
+  while((c = pgm_read_byte_near(description++)))
+  {
+    Serial.print(c);
+  }
+  Serial.println();
 }
 
 void Settings::printFormattedParameterWithValue( Parameter* param, int maxNameLen )
@@ -1465,7 +1540,12 @@ void Settings::printFormattedParameterWithValue( Parameter* param, int maxNameLe
   // Print value
   if( strlen( param->meta.units ) == 0 && param->meta.maxValue == 1.0f && param->meta.minValue == 0.0f )
   {
-    Serial.print( param->currentValue != 0.0f ? "true" : "false" );
+    Serial.print( param->currentValue != 0.0f ? F("true") : F("false") );
+  }
+  else if( isParameterName( param->meta.name, "night_threshold" ) ||
+           isParameterName( param->meta.name, "brightness_threshold" ) )
+  {
+    Serial.print( (int32_t)param->currentValue );
   }
   else if( param->meta.isInteger )
   {

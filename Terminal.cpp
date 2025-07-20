@@ -137,8 +137,8 @@ void Terminal::parseCommand( const char* input, char* command, char* param1, cha
     char* token = strtok( inputCopy, " \t" );
     if( token )
     {
-        strncpy( command, token, 7 );  // Longest command is 'factory' (7 chars)
-        command[7] = '\0';
+        strncpy( command, token, 13 );  // Longest command is 'factory_reset' (12 chars + null)
+        command[13] = '\0';
         
         // Parse first parameter
         token = strtok( nullptr, " \t" );
@@ -160,7 +160,7 @@ void Terminal::parseCommand( const char* input, char* command, char* param1, cha
 
 void Terminal::processCommand( const char* command )
 {
-    char cmd[16];     // 7 chars + null terminator
+    char cmd[14];     // 12 chars + null terminator + 1 extra for safety
     char param1[5];  // 4 chars + null terminator
     char param2[8];  // 7 chars + null terminator
     

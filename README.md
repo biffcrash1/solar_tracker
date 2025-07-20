@@ -75,6 +75,7 @@ The solar tracker provides an interactive terminal interface with the following 
   - Parameters are organized into:
     * Sensor parameters
     * Tracker parameters
+    * Monitor mode parameters
     * Motor parameters
     * Terminal parameters
 
@@ -84,8 +85,8 @@ The solar tracker provides an interactive terminal interface with the following 
   - With arguments: `set <param> <value>` to change a parameter
   - Shows parameter names and short names
   - Displays current values and units
-  - Parameters can be referenced by full name or short name
-  - Example: `set balance_tol 10` or `set bth 30000`
+  - Parameters can be referenced by short name only
+  - Example: `set tol 10` or `set bth 30000`
 
 - **factory_reset**: Reset all parameters to default values
   - Restores all parameters to their original configuration
@@ -130,6 +131,7 @@ Parameters are grouped into modules for easier management:
 - `terminal_print_period (tpp)`: Period between status updates
 - `terminal_moving_period (tmp)`: Update period during movement
 - `terminal_periodic_logs (tpl)`: Enable periodic logging
+- `terminal_log_only_moving (tlm)`: Only log sensor data while motor is moving
 
 ---
 
@@ -173,50 +175,6 @@ Parameters are grouped into modules for easier management:
 
 ---
 
-## Quick Start
-
-### Hardware Required
-
-- Arduino Mega 2560 (or compatible)
-- SSD1306 OLED Display (128x64)
-- 2x Photoresistors + 1kΩ resistors
-- Motor driver (H-bridge)
-- I2C wiring (SDA: 20, SCL: 21)
-
-### Dependencies
-
-- Adafruit_SSD1306
-- Wire (built-in)
-- Arduino.h (built-in)
-
-### Example Initialization
-
-```cpp
-PhotoSensor eastSensor(A0, 1000);
-PhotoSensor westSensor(A1, 1000);
-MotorControl motorControl;
-Tracker tracker(&eastSensor, &westSensor, &motorControl);
-Terminal terminal;
-
-void setup() {
-  eastSensor.begin();
-  westSensor.begin();
-  motorControl.begin();
-  tracker.begin();
-  terminal.begin();
-}
-
-void loop() {
-  eastSensor.update();
-  westSensor.update();
-  motorControl.update();
-  tracker.update();
-  terminal.update(&tracker, &motorControl, &eastSensor, &westSensor);
-}
-```
-
----
-
 ## Configuration
 
 All configuration constants are in `param_config.h`:
@@ -227,6 +185,11 @@ All configuration constants are in `param_config.h`:
   * Print period while moving (`TERMINAL_MOVING_PRINT_PERIOD_MS`)
   * Enable/disable periodic logs (`TERMINAL_ENABLE_PERIODIC_LOGS`)
   * Log only while moving option (`TERMINAL_LOG_ONLY_WHILE_MOVING`)
+- **Monitor Mode:**
+  * Enable/disable monitor mode (`TRACKER_MONITOR_MODE_ENABLED`)
+  * Movement threshold percentage (`TRACKER_START_MOVE_THRESHOLD_PERCENT`)
+  * Minimum wait time (`TRACKER_MIN_WAIT_TIME_SECONDS`)
+  * Filter time constant (`TRACKER_MONITOR_FILTER_TIME_CONSTANT_S`)
 
 ---
 
@@ -250,6 +213,38 @@ All configuration constants are in `param_config.h`:
   - Dedicated filter (120s default time constant) for smooth response
   - Independent from regular adjustment period timing
   - Helps track faster-moving clouds and changing conditions
+
+- **Adjustment Timing:**
+  - Two independent timing systems:
+    * Regular adjustment period (`adjustment_period`):
+      - Fixed interval checks (default 300s/5min)
+      - Timing starts from completion of previous adjustment
+      - Applies to normal sensor-based adjustments and default west movements
+      - Skipped if in night mode or monitor mode
+    * Monitor mode timing (`min_wait`):
+      - Minimum wait between monitor mode movements (default 120s)
+      - Independent of regular adjustment period
+      - Only active when monitor mode is enabled
+      - Helps track faster-moving clouds without waiting for regular period
+  - Timing behavior by mode:
+    * Normal mode:
+      - Follows regular adjustment period
+      - Consistent timing throughout the day
+      - Skips adjustments in low light (unless default west enabled)
+    * Monitor mode:
+      - Uses minimum wait time between movements
+      - More responsive to changing conditions
+      - Regular adjustment period is ignored
+    * Night mode:
+      - All adjustments suspended
+      - Panel remains in east position
+      - Resumes normal timing when day mode returns
+  - Detailed logging includes:
+    * Time until next adjustment
+    * Duration of successful movements
+    * Skipped adjustments and reason
+    * Mode transitions affecting timing
+
 - **Smart overshoot correction:**
   - Detects when movement overshoots target position
   - Waits for configurable dead time before attempting correction
@@ -272,69 +267,22 @@ All configuration constants are in `param_config.h`:
   - Completes full movement duration regardless of light conditions
   - Returns to IDLE state after completion
   - Detailed logging of movement start and completion
-- **Adjustment Timing:**
-  - Regular adjustment checks at configurable intervals (`TRACKER_ADJUSTMENT_PERIOD_SECONDS`)
-  - Timing starts from when each adjustment or movement begins:
-    * Normal sensor-based adjustments
-    * Default west movements
-    * Skipped adjustments due to low light
-  - Consistent timing ensures predictable behavior throughout the day
-  - Detailed logging includes duration of successful adjustments
-- **Continuous brightness monitoring:** EMA-filtered brightness updates during movement to detect low light conditions
-- **Movement abortion:** stops ongoing movement if brightness drops below threshold (except during default west movement)
-- **Configurable parameters:**
-  - Sensor tolerance percentage
-  - Movement timing (max time, adjustment period)
-  - Filtering constants
-  - Reversal dead time
-  - Reversal movement time limit
-  - Maximum reversal attempts
-  - Night mode threshold and hysteresis
-  - Night/day detection time
-- **Comprehensive logging:**
-  - State changes (including night mode transitions)
-  - Sensor values and brightness levels (showing "INF" when ≥95% of max resistance)
-  - Overshoot detection
-  - Reversal progress
-  - Aborted movements
-  - Skipped adjustments
-  - Day/night transitions
-
----
-
-## Display Features
-
-### OLED Display Layout
-- **Top Row (Status):**
-  - Wt: Power in watts
-  - V: Voltage
-  - A: Current in amps
-- **Bottom Row (Sensors):**
-  - E: East photosensor value (ohms)
-  - W: West photosensor value (ohms)
-  - N: Next adjustment countdown (M:SS)
-
-### Real-time Adjustment Timer
-- Shows actual time remaining until next adjustment
-- Format: M:SS (minutes:seconds)
-- Synchronized with tracker's adjustment period
-- Updates in real-time based on:
-  * Regular adjustment intervals (default 5 minutes)
-  * Early adjustments from state changes
-  * Night mode transitions
-  * Low-light conditions
-
-### Value Formatting
-- Values ≤999: shown as integers
-- Values ≥1000: shown in kilo-units with 'k' suffix
-- Brightness values ≥95% of maximum resistance (350K ohms): shown as "INF"
-- Time always shown in M:SS format
-
-### Graph Display
-- Power history shown in bottom half of display
-- Auto-scaling to maximize visible detail
-- 5-minute history (configurable via `HISTORY_SECONDS`)
-- Sample interval of 2 seconds (configurable via `SAMPLE_INTERVAL_SECONDS`)
+- **Terminal Logging:**
+  - Configurable logging behavior:
+    * Option to log sensor data only while motor is moving (`terminal_log_only_moving`)
+    * Different logging rates for moving vs stationary states
+    * Configurable periodic logging enable/disable
+  - Comprehensive event logging:
+    * State changes
+    * Motor movements
+    * Sensor values
+    * Balance detection
+    * Night mode transitions
+    * Overshoot detection
+    * Reversal progress
+    * Aborted movements
+    * Skipped adjustments
+    * Day/night transitions
 
 ---
 
@@ -350,11 +298,11 @@ All configuration constants are in `param_config.h`:
 
 ## Recent Improvements
 
-- Added night mode with automatic east return
-- Enhanced state machine with dedicated night mode state
-- Improved day/night transition handling with hysteresis
-- Configurable sensor resistance limit to prevent overflow
+- Added monitor mode for continuous tracking
+- Added configurable terminal logging options
+- Enhanced state machine with monitor mode state
 - Improved tracking accuracy and stability
+- Added EEPROM storage for all parameters
 - Bug fixes for motor state and tolerance calculation
 
 ---

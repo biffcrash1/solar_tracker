@@ -138,7 +138,7 @@ private:
   bool monitorModeEnabled;          // Whether monitor mode is enabled
   float startMoveThresholdPercent;  // Percentage difference threshold to trigger movement
   unsigned long minWaitTimeMs;      // Minimum time between monitor mode movements
-  float monitorFilterTimeConstantS; // Time constant for monitor mode EMA filter
+  float monitorFilterTimeConstantS; // Time constant for monitor mode filter
 
   // Timing
   unsigned long lastAdjustmentTime;
