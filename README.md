@@ -9,6 +9,7 @@ A modular, object-oriented solar tracker for Arduino, using modern C++ classes a
 - **Tracks the sun** using two photoresistors and a motorized panel.
 - **Automatic adjustment** with configurable tolerance, timing, and filtering.
 - **Night mode** with automatic east return and day/night transitions.
+- **Monitor mode** for continuous tracking with configurable thresholds.
 - **Modular design**: Each subsystem (sensors, motor, tracker, display, terminal) is encapsulated in its own class or module.
 - **Comprehensive serial logging** for monitoring and debugging.
 - **Interactive terminal interface** for monitoring and configuration.
@@ -115,6 +116,12 @@ Parameters are grouped into modules for easier management:
 - `default_west_time (dwt)`: Duration of default west movement
 - `use_average_movement (uam)`: Use average of previous movements
 - `movement_history_size (mhs)`: Number of movements to track
+
+#### Monitor Mode Parameters
+- `monitor_mode (mon)`: Enable continuous monitoring mode
+- `start_move_thresh (smt)`: Percentage difference to trigger movement
+- `min_wait (mwt)`: Minimum wait time between movements
+- `monitor_filt_tau (mft)`: Time constant for monitor mode filter
 
 #### Motor Parameters
 - `motor_dead_time (mdt)`: Delay between motor direction changes
@@ -236,6 +243,13 @@ All configuration constants are in `param_config.h`:
   - Configurable detection time to confirm transitions
   - Panel returns to full east position during night
   - Smooth transition back to tracking when day returns
+- **Monitor Mode Operation:**
+  - Optional continuous monitoring mode (disabled by default)
+  - Configurable threshold (15% default) to trigger movement
+  - Minimum wait time (120s default) between movements
+  - Dedicated filter (120s default time constant) for smooth response
+  - Independent from regular adjustment period timing
+  - Helps track faster-moving clouds and changing conditions
 - **Smart overshoot correction:**
   - Detects when movement overshoots target position
   - Waits for configurable dead time before attempting correction

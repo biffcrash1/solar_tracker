@@ -64,7 +64,7 @@ private:
   
   // Command processing
   Settings* settings;
-  static const int COMMAND_BUFFER_SIZE = 64;
+  static const int COMMAND_BUFFER_SIZE = 24;  // Reduced from 64 to 24 bytes
   char commandBuffer[COMMAND_BUFFER_SIZE];
   int commandBufferIndex;
   

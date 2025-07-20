@@ -49,4 +49,10 @@
 #define TRACKER_NIGHT_HYSTERESIS_PERCENT 10.0f  // 10% hysteresis for day/night transitions
 #define TRACKER_NIGHT_DETECTION_TIME_SECONDS 300  // 300 seconds (5 minutes) to confirm night/day transitions
 
+// Monitor mode settings
+#define TRACKER_MONITOR_MODE_ENABLED false  // Monitor mode disabled by default
+#define TRACKER_START_MOVE_THRESHOLD_PERCENT 15.0f  // 15% threshold to start movement
+#define TRACKER_MIN_WAIT_TIME_SECONDS 120  // 120 seconds minimum wait time
+#define TRACKER_MONITOR_FILTER_TIME_CONSTANT_S 120  // 120 seconds monitor filter time constant
+
 #endif // PARAM_CONFIG_H

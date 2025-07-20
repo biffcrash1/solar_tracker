@@ -37,6 +37,12 @@ public:
   void setDefaultWestMovementTime( unsigned long ms );
   void setUseAverageMovementTime( bool enabled );
   void setMovementHistorySize( uint8_t size );
+  
+  // Monitor mode configuration
+  void setMonitorModeEnabled( bool enabled );
+  void setStartMoveThreshold( float thresholdPercent );
+  void setMinWaitTime( unsigned long waitTimeSeconds );
+  void setMonitorFilterTimeConstant( float tauS );
 
   // Getters for configuration
   float getTolerance() const { return tolerancePercent; }
@@ -55,6 +61,12 @@ public:
   unsigned long getDefaultWestMovementTime() const { return defaultWestMovementMs; }
   bool getUseAverageMovementTime() const { return useAverageMovementTime; }
   uint8_t getMovementHistorySize() const { return movementHistorySize; }
+  
+  // Monitor mode getters
+  bool getMonitorModeEnabled() const { return monitorModeEnabled; }
+  float getStartMoveThreshold() const { return startMoveThresholdPercent; }
+  unsigned long getMinWaitTime() const { return minWaitTimeMs / 1000UL; }
+  float getMonitorFilterTimeConstant() const { return monitorFilterTimeConstantS; }
 
   // Status
   State getState() const;
@@ -121,6 +133,12 @@ private:
   unsigned long* movementHistory;    // Circular buffer of past movement durations
   uint8_t movementHistoryIndex;     // Current index in circular buffer
   uint8_t movementHistoryCount;     // Number of movements recorded
+  
+  // Monitor mode configuration
+  bool monitorModeEnabled;          // Whether monitor mode is enabled
+  float startMoveThresholdPercent;  // Percentage difference threshold to trigger movement
+  unsigned long minWaitTimeMs;      // Minimum time between monitor mode movements
+  float monitorFilterTimeConstantS; // Time constant for monitor mode EMA filter
 
   // Timing
   unsigned long lastAdjustmentTime;

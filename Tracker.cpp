@@ -38,6 +38,10 @@ Tracker::Tracker(PhotoSensor* eastSensor, PhotoSensor* westSensor, MotorControl*
     movementHistory(nullptr),
     movementHistoryIndex(0),
     movementHistoryCount(0),
+    monitorModeEnabled(TRACKER_MONITOR_MODE_ENABLED),
+    startMoveThresholdPercent(TRACKER_START_MOVE_THRESHOLD_PERCENT),
+    minWaitTimeMs(TRACKER_MIN_WAIT_TIME_SECONDS * 1000UL),
+    monitorFilterTimeConstantS(TRACKER_MONITOR_FILTER_TIME_CONSTANT_S),
     lastAdjustmentTime(0),
     lastSamplingTime(0),
     movementStartTime(0),
@@ -515,6 +519,26 @@ void Tracker::setDefaultWestMovementEnabled(bool enabled)
 void Tracker::setDefaultWestMovementTime(unsigned long ms)
 {
   defaultWestMovementMs = ms;
+}
+
+void Tracker::setMonitorModeEnabled( bool enabled )
+{
+  monitorModeEnabled = enabled;
+}
+
+void Tracker::setStartMoveThreshold( float thresholdPercent )
+{
+  startMoveThresholdPercent = thresholdPercent;
+}
+
+void Tracker::setMinWaitTime( unsigned long waitTimeSeconds )
+{
+  minWaitTimeMs = waitTimeSeconds * 1000UL;
+}
+
+void Tracker::setMonitorFilterTimeConstant( float tauS )
+{
+  monitorFilterTimeConstantS = tauS;
 }
 
 Tracker::State Tracker::getState() const

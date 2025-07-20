@@ -3,6 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 
+// Command strings stored in program memory
+static const char CMD_MEAS[] PROGMEM = "meas";
+static const char CMD_PARAM[] PROGMEM = "param";
+static const char CMD_STATUS[] PROGMEM = "status";
+static const char CMD_SET[] PROGMEM = "set";
+static const char CMD_HELP[] PROGMEM = "help";
+static const char CMD_FACTORY_RESET[] PROGMEM = "factory_reset";
+
 Terminal::Terminal()
     : printPeriodMs(TERMINAL_PRINT_PERIOD_MS),
       movingPrintPeriodMs(TERMINAL_MOVING_PRINT_PERIOD_MS),
@@ -24,9 +32,9 @@ void Terminal::begin()
     Serial.begin(115200);
     Serial.println();
     Serial.println();
-    Serial.println("Solar Tracker Terminal Started");
-    Serial.println("==============================");
-    Serial.println("Type 'help' for available commands");
+    Serial.println(F("Solar Tracker Terminal Started"));
+    Serial.println(F("=============================="));
+    Serial.println(F("Type 'help' for available commands"));
 }
 
 void Terminal::setSettings( Settings* settings )
@@ -82,7 +90,7 @@ void Terminal::processSerialInput()
             {
                 commandBufferIndex--;
                 commandBuffer[commandBufferIndex] = '\0';
-                Serial.print( "\b \b" ); // Backspace, space, backspace
+                Serial.print(F("\b \b")); // Backspace, space, backspace
             }
         }
         // Handle newline/carriage return
@@ -117,9 +125,9 @@ void Terminal::parseCommand( const char* input, char* command, char* param1, cha
     param2[0] = '\0';
     
     // Make a copy of input to work with
-    char inputCopy[COMMAND_BUFFER_SIZE];
-    strncpy( inputCopy, input, COMMAND_BUFFER_SIZE - 1 );
-    inputCopy[COMMAND_BUFFER_SIZE - 1] = '\0';
+    char inputCopy[24];  // Reduced from COMMAND_BUFFER_SIZE to match new size
+    strncpy( inputCopy, input, 23 );  // Leave room for null terminator
+    inputCopy[23] = '\0';
     
     // Trim and convert to lowercase
     trimString( inputCopy );
@@ -129,19 +137,22 @@ void Terminal::parseCommand( const char* input, char* command, char* param1, cha
     char* token = strtok( inputCopy, " \t" );
     if( token )
     {
-        strcpy( command, token );
+        strncpy( command, token, 7 );  // Longest command is 'factory' (7 chars)
+        command[7] = '\0';
         
         // Parse first parameter
         token = strtok( nullptr, " \t" );
         if( token )
         {
-            strcpy( param1, token );
+            strncpy( param1, token, 4 );  // Short parameter names are up to 4 chars
+            param1[4] = '\0';
             
             // Parse second parameter
             token = strtok( nullptr, " \t" );
             if( token )
             {
-                strcpy( param2, token );
+                strncpy( param2, token, 7 );  // Value can be up to 7 chars (e.g. "-123.45")
+                param2[7] = '\0';
             }
         }
     }
@@ -149,9 +160,9 @@ void Terminal::parseCommand( const char* input, char* command, char* param1, cha
 
 void Terminal::processCommand( const char* command )
 {
-    char cmd[32];
-    char param1[32];
-    char param2[32];
+    char cmd[16];     // 7 chars + null terminator
+    char param1[5];  // 4 chars + null terminator
+    char param2[8];  // 7 chars + null terminator
     
     parseCommand( command, cmd, param1, param2 );
     
@@ -163,41 +174,41 @@ void Terminal::processCommand( const char* command )
     if( !settings )
     {
         Serial.println();
-        Serial.println( "ERROR: Settings module not initialized" );
+        Serial.println(F("ERROR: Settings module not initialized"));
         return;
     }
     
     // Handle commands
-    if( strcmp( cmd, "meas" ) == 0 )
+    if( strcmp_P( cmd, CMD_MEAS ) == 0 )
     {
         settings->handleMeasCommand();
     }
-    else if( strcmp( cmd, "param" ) == 0 )
+    else if( strcmp_P( cmd, CMD_PARAM ) == 0 )
     {
         settings->handleParamCommand();
     }
-    else if( strcmp( cmd, "status" ) == 0 )
+    else if( strcmp_P( cmd, CMD_STATUS ) == 0 )
     {
         settings->handleStatusCommand();
     }
-    else if( strcmp( cmd, "set" ) == 0 )
+    else if( strcmp_P( cmd, CMD_SET ) == 0 )
     {
         settings->handleSetCommand( param1, param2 );
     }
-    else if( strcmp( cmd, "help" ) == 0 )
+    else if( strcmp_P( cmd, CMD_HELP ) == 0 )
     {
         settings->handleHelpCommand();
     }
-    else if( strcmp( cmd, "factory_reset" ) == 0 )
+    else if( strcmp_P( cmd, CMD_FACTORY_RESET ) == 0 )
     {
         settings->handleFactoryResetCommand();
     }
     else
     {
         Serial.println();
-        Serial.print( "ERROR: Unknown command '" );
+        Serial.print(F("ERROR: Unknown command '"));
         Serial.print( cmd );
-        Serial.println( "'. Type 'help' for available commands." );
+        Serial.println(F("'. Type 'help' for available commands."));
     }
 }
 
